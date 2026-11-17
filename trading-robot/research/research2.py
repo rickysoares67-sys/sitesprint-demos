@@ -4,7 +4,7 @@ import sys, os, itertools, numpy as np, pandas as pd
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from engine import atr, run, stats
 
-D = sys.argv[1]
+D = sys.argv[1] if len(sys.argv) > 1 else "/home/user/komo135/forex-historical-data"
 SYMS = ["EURUSD", "GBPUSD", "USDJPY", "USDCHF", "USDCAD", "AUDUSD", "EURGBP", "EURCHF", "EURJPY", "GBPJPY", "AUDJPY", "XAUUSD"]
 SCALE = lambda s: 100 if s == "XAUUSD" else (1000 if "JPY" in s else 1e5)
 PIP = lambda s: 0.1 if s == "XAUUSD" else (0.01 if "JPY" in s else 1e-4)
@@ -52,29 +52,30 @@ STRATS = {
  "Bollinger H1":   ("h1", bollrev, list(itertools.product([20, 50], [2.0, 2.5], [2, 3], [12, 24]))),
 }
 STRATS = {k: v for k, v in STRATS.items() if len(sys.argv) < 3 or k in sys.argv[2].split(",")}
-rows = []; TRADES = {}
-for name, (tf, fn, grid) in STRATS.items():
-    for p in grid:
-        if fn is trend_ma and p[0] >= p[1]: continue
-        per = {}
-        for s in SYMS:
-            df = load(s, tf); t = fn(df, COST[s] * PIP(s), *p); t["sym"] = s; per[s] = t
-        T = pd.concat(per.values()).sort_values("entry_time")
-        ins, oos = T[T.entry_time < IS_END], T[(T.entry_time >= IS_END) & (T.entry_time < OOS_END)]
-        si, so = stats(ins, 0.005), stats(oos, 0.005)
-        mis = sum(stats(v[v.entry_time < IS_END])["avgR"] > 0 for v in per.values())
-        moos = sum(stats(v[(v.entry_time >= IS_END) & (v.entry_time < OOS_END)])["avgR"] > 0 for v in per.values())
-        rows.append(dict(strat=name, p=str(p), is_n=si["trades"], is_R=si["avgR"], is_pf=si["pf"], is_mk=mis,
-                         oos_n=so["trades"], oos_R=so["avgR"], oos_pf=so["pf"], oos_mk=moos, oos_cagr=so["cagr"], oos_dd=so["maxdd"]))
-        TRADES[(name, str(p))] = T
-    print("done", name, flush=True)
-R = pd.DataFrame(rows); R.to_csv(f"{os.path.dirname(os.path.abspath(__file__))}/research2_results.csv", index=False)
-pd.set_option("display.width", 250); pd.set_option("display.max_columns", 30)
-print("\n=== Settings chosen on 2012-2018 only (most robust: positive in most markets, then best avg R) ===")
-best = R[R.is_n >= 300].sort_values(["is_mk", "is_R"], ascending=False).groupby("strat").head(1)
-print(best.to_string(index=False))
-print("\n=== Every setting, judged on unseen 2019-2022 ===")
-print(R.groupby("strat").agg(n=("oos_R", "size"), share_pos_oos=("oos_R", lambda x: round((x > 0).mean(), 2)),
-      med_oos_R=("oos_R", "median"), med_is_R=("is_R", "median"), best_oos_R=("oos_R", "max")).to_string())
-import pickle; pickle.dump({k: v for k, v in TRADES.items() if (k[0], k[1]) in set(zip(best.strat, best.p))},
-                           open(f"{os.path.dirname(os.path.abspath(__file__))}/best_trades.pkl", "wb"))
+if __name__ == "__main__":
+    rows = []; TRADES = {}
+    for name, (tf, fn, grid) in STRATS.items():
+        for p in grid:
+            if fn is trend_ma and p[0] >= p[1]: continue
+            per = {}
+            for s in SYMS:
+                df = load(s, tf); t = fn(df, COST[s] * PIP(s), *p); t["sym"] = s; per[s] = t
+            T = pd.concat(per.values()).sort_values("entry_time")
+            ins, oos = T[T.entry_time < IS_END], T[(T.entry_time >= IS_END) & (T.entry_time < OOS_END)]
+            si, so = stats(ins, 0.005), stats(oos, 0.005)
+            mis = sum(stats(v[v.entry_time < IS_END])["avgR"] > 0 for v in per.values())
+            moos = sum(stats(v[(v.entry_time >= IS_END) & (v.entry_time < OOS_END)])["avgR"] > 0 for v in per.values())
+            rows.append(dict(strat=name, p=str(p), is_n=si["trades"], is_R=si["avgR"], is_pf=si["pf"], is_mk=mis,
+                             oos_n=so["trades"], oos_R=so["avgR"], oos_pf=so["pf"], oos_mk=moos, oos_cagr=so["cagr"], oos_dd=so["maxdd"]))
+            TRADES[(name, str(p))] = T
+        print("done", name, flush=True)
+    R = pd.DataFrame(rows); R.to_csv(f"{os.path.dirname(os.path.abspath(__file__))}/research2_results.csv", index=False)
+    pd.set_option("display.width", 250); pd.set_option("display.max_columns", 30)
+    print("\n=== Settings chosen on 2012-2018 only (most robust: positive in most markets, then best avg R) ===")
+    best = R[R.is_n >= 300].sort_values(["is_mk", "is_R"], ascending=False).groupby("strat").head(1)
+    print(best.to_string(index=False))
+    print("\n=== Every setting, judged on unseen 2019-2022 ===")
+    print(R.groupby("strat").agg(n=("oos_R", "size"), share_pos_oos=("oos_R", lambda x: round((x > 0).mean(), 2)),
+          med_oos_R=("oos_R", "median"), med_is_R=("is_R", "median"), best_oos_R=("oos_R", "max")).to_string())
+    import pickle; pickle.dump({k: v for k, v in TRADES.items() if (k[0], k[1]) in set(zip(best.strat, best.p))},
+                               open(f"{os.path.dirname(os.path.abspath(__file__))}/best_trades.pkl", "wb"))

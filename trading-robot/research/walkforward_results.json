@@ -1,0 +1,325 @@
+{
+ "choice": "all markets",
+ "logs": {
+  "all markets": [
+   {
+    "year": 2015,
+    "settings": [
+     10,
+     3,
+     10,
+     10
+    ],
+    "markets": 12,
+    "dropped": [],
+    "trades": 118,
+    "avgR": -0.1,
+    "totR": -11.8
+   },
+   {
+    "year": 2016,
+    "settings": [
+     15,
+     3,
+     10,
+     10
+    ],
+    "markets": 12,
+    "dropped": [],
+    "trades": 183,
+    "avgR": 0.006,
+    "totR": 1.1
+   },
+   {
+    "year": 2017,
+    "settings": [
+     5,
+     4,
+     10,
+     10
+    ],
+    "markets": 12,
+    "dropped": [],
+    "trades": 68,
+    "avgR": 0.016,
+    "totR": 1.1
+   },
+   {
+    "year": 2018,
+    "settings": [
+     5,
+     4,
+     10,
+     10
+    ],
+    "markets": 12,
+    "dropped": [],
+    "trades": 58,
+    "avgR": 0.011,
+    "totR": 0.6
+   },
+   {
+    "year": 2019,
+    "settings": [
+     5,
+     4,
+     10,
+     10
+    ],
+    "markets": 12,
+    "dropped": [],
+    "trades": 73,
+    "avgR": 0.085,
+    "totR": 6.2
+   },
+   {
+    "year": 2020,
+    "settings": [
+     5,
+     4,
+     10,
+     10
+    ],
+    "markets": 12,
+    "dropped": [],
+    "trades": 74,
+    "avgR": 0.0,
+    "totR": 0.0
+   },
+   {
+    "year": 2021,
+    "settings": [
+     5,
+     4,
+     10,
+     10
+    ],
+    "markets": 12,
+    "dropped": [],
+    "trades": 66,
+    "avgR": 0.054,
+    "totR": 3.6
+   },
+   {
+    "year": 2022,
+    "settings": [
+     5,
+     4,
+     10,
+     10
+    ],
+    "markets": 12,
+    "dropped": [],
+    "trades": 12,
+    "avgR": 0.085,
+    "totR": 1.0
+   }
+  ],
+  "market selection": [
+   {
+    "year": 2015,
+    "settings": [
+     10,
+     3,
+     10,
+     10
+    ],
+    "markets": 10,
+    "dropped": [
+     "USDCAD",
+     "XAUUSD"
+    ],
+    "trades": 100,
+    "avgR": -0.112,
+    "totR": -11.2
+   },
+   {
+    "year": 2016,
+    "settings": [
+     15,
+     3,
+     10,
+     10
+    ],
+    "markets": 9,
+    "dropped": [
+     "EURJPY",
+     "GBPJPY",
+     "XAUUSD"
+    ],
+    "trades": 140,
+    "avgR": 0.006,
+    "totR": 0.8
+   },
+   {
+    "year": 2017,
+    "settings": [
+     5,
+     4,
+     10,
+     10
+    ],
+    "markets": 9,
+    "dropped": [
+     "USDCAD",
+     "EURJPY",
+     "XAUUSD"
+    ],
+    "trades": 43,
+    "avgR": 0.043,
+    "totR": 1.9
+   },
+   {
+    "year": 2018,
+    "settings": [
+     5,
+     4,
+     10,
+     10
+    ],
+    "markets": 10,
+    "dropped": [
+     "EURJPY",
+     "XAUUSD"
+    ],
+    "trades": 48,
+    "avgR": -0.002,
+    "totR": -0.1
+   },
+   {
+    "year": 2019,
+    "settings": [
+     5,
+     4,
+     10,
+     10
+    ],
+    "markets": 9,
+    "dropped": [
+     "USDCAD",
+     "EURJPY",
+     "XAUUSD"
+    ],
+    "trades": 55,
+    "avgR": 0.062,
+    "totR": 3.4
+   },
+   {
+    "year": 2020,
+    "settings": [
+     5,
+     4,
+     10,
+     10
+    ],
+    "markets": 10,
+    "dropped": [
+     "USDCAD",
+     "XAUUSD"
+    ],
+    "trades": 64,
+    "avgR": -0.024,
+    "totR": -1.5
+   },
+   {
+    "year": 2021,
+    "settings": [
+     5,
+     4,
+     10,
+     10
+    ],
+    "markets": 9,
+    "dropped": [
+     "USDCAD",
+     "GBPJPY",
+     "XAUUSD"
+    ],
+    "trades": 49,
+    "avgR": 0.04,
+    "totR": 2.0
+   },
+   {
+    "year": 2022,
+    "settings": [
+     5,
+     4,
+     10,
+     10
+    ],
+    "markets": 10,
+    "dropped": [
+     "GBPJPY",
+     "XAUUSD"
+    ],
+    "trades": 10,
+    "avgR": 0.164,
+    "totR": 1.6
+   }
+  ]
+ },
+ "summary": {
+  "all markets": {
+   "trades": 652,
+   "win": 0.633,
+   "avgR": 0.003,
+   "pf": 1.02,
+   "cagr": 0.0016,
+   "maxdd": 0.144,
+   "tstat": 0.15
+  },
+  "market selection": {
+   "trades": 509,
+   "win": 0.642,
+   "avgR": -0.006,
+   "pf": 0.96,
+   "cagr": -0.0051,
+   "maxdd": 0.143,
+   "tstat": -0.32
+  }
+ },
+ "mc": {
+  "0.0025": {
+   "median_3y_return": -0.002,
+   "p5_3y_return": -0.033,
+   "median_maxdd": 0.021,
+   "p95_maxdd": 0.042,
+   "p_loss_3y": 0.547
+  },
+  "0.005": {
+   "median_3y_return": -0.006,
+   "p5_3y_return": -0.065,
+   "median_maxdd": 0.042,
+   "p95_maxdd": 0.083,
+   "p_loss_3y": 0.559
+  },
+  "0.0075": {
+   "median_3y_return": -0.009,
+   "p5_3y_return": -0.098,
+   "median_maxdd": 0.063,
+   "p95_maxdd": 0.123,
+   "p_loss_3y": 0.563
+  },
+  "0.01": {
+   "median_3y_return": -0.012,
+   "p5_3y_return": -0.128,
+   "median_maxdd": 0.083,
+   "p95_maxdd": 0.16,
+   "p_loss_3y": 0.564
+  },
+  "0.015": {
+   "median_3y_return": -0.018,
+   "p5_3y_return": -0.186,
+   "median_maxdd": 0.122,
+   "p95_maxdd": 0.231,
+   "p_loss_3y": 0.563
+  },
+  "0.02": {
+   "median_3y_return": -0.031,
+   "p5_3y_return": -0.243,
+   "median_maxdd": 0.161,
+   "p95_maxdd": 0.298,
+   "p_loss_3y": 0.581
+  }
+ }
+}

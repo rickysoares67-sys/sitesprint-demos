@@ -17,7 +17,7 @@
 //|  across 12 markets. Test it on a demo account before real money. |
 //+------------------------------------------------------------------+
 #property copyright "PipCraft Tools"
-#property version   "1.00"
+#property version   "1.10"
 #property description "Reversion12 - daily RSI(2) mean reversion across a basket of markets."
 #property description "Small, tested edge. Backtest and demo-trade before using real money."
 
@@ -44,6 +44,15 @@ input double InpMaxOpenRisk  = 3.0;  // Max total risk of open trades (% of bala
 input double InpMaxSpreadPct = 15;   // Skip entry if spread > this % of the stop distance
 input double InpDDStopPct    = 15;   // Stop opening trades if equity is this % below its peak (0 = off)
 
+input group "Prop-firm limits (0 = off)"
+input double InpDailyLossPct = 4.0;  // Close all & pause for the day at this % loss from the day's start
+input double InpMaxLossPct   = 8.0;  // Close all & stop for good at this % below the starting balance
+input double InpTargetPct    = 0.0;  // Close all & stop when this % profit is reached (challenge target)
+input double InpStartBalance = 0.0;  // Starting balance for the limits (0 = balance when attached)
+
+input group "Logging"
+input bool   InpLogCsv = true;       // Write every trade to MQL5/Files/Reversion12_log.csv
+
 input group "General"
 input long   InpMagic   = 260312;
 input string InpComment = "Reversion12";
@@ -53,7 +62,47 @@ CPositionInfo pos;
 
 struct Mkt { string sym; int hRsi, hTrend, hExit, hAtr; datetime lastBar; bool ok; };
 Mkt   M[];
-double peakEquity = 0;
+double peakEquity = 0, startBal = 0, dayStartEq = 0;
+int    dayKey = -1;
+bool   haltedToday = false, haltedForGood = false;
+
+void LogCsv(const string what, const string sym, double lots, double price, const string note)
+  {
+   if(!InpLogCsv) return;
+   int h = FileOpen("Reversion12_log.csv", FILE_READ|FILE_WRITE|FILE_CSV|FILE_ANSI|FILE_SHARE_READ, ',');
+   if(h == INVALID_HANDLE) return;
+   if(FileSize(h) == 0) FileWrite(h, "time", "event", "symbol", "lots", "price", "balance", "equity", "note");
+   FileSeek(h, 0, SEEK_END);
+   FileWrite(h, TimeToString(TimeCurrent(), TIME_DATE|TIME_SECONDS), what, sym, DoubleToString(lots, 2), DoubleToString(price, 5),
+             DoubleToString(AccountInfoDouble(ACCOUNT_BALANCE), 2), DoubleToString(AccountInfoDouble(ACCOUNT_EQUITY), 2), note);
+   FileClose(h);
+  }
+
+void CloseAllMine(const string why)
+  {
+   for(int i = PositionsTotal() - 1; i >= 0; i--)
+      if(pos.SelectByIndex(i) && pos.Magic() == InpMagic)
+        {
+         string s = pos.Symbol(); double v = pos.Volume(), px = pos.PriceCurrent();
+         if(trade.PositionClose(pos.Ticket())) LogCsv("CLOSE", s, v, px, why);
+        }
+  }
+
+// returns false when no new trades may be opened
+bool RiskGuards()
+  {
+   double eq = AccountInfoDouble(ACCOUNT_EQUITY);
+   MqlDateTime dt; TimeToStruct(TimeCurrent(), dt);
+   if(dt.day_of_year != dayKey) { dayKey = dt.day_of_year; dayStartEq = eq; haltedToday = false; }
+   if(haltedForGood) return(false);
+   if(InpMaxLossPct > 0 && eq <= startBal * (1 - InpMaxLossPct / 100.0))
+     { CloseAllMine("max loss limit"); haltedForGood = true; Print("Reversion12: MAX LOSS limit hit - trading stopped. Remove and re-attach to restart."); return(false); }
+   if(InpTargetPct > 0 && eq >= startBal * (1 + InpTargetPct / 100.0))
+     { CloseAllMine("profit target"); haltedForGood = true; Print("Reversion12: PROFIT TARGET reached - trading stopped."); return(false); }
+   if(InpDailyLossPct > 0 && !haltedToday && eq <= dayStartEq * (1 - InpDailyLossPct / 100.0))
+     { CloseAllMine("daily loss limit"); haltedToday = true; Print("Reversion12: DAILY LOSS limit hit - paused until tomorrow."); }
+   return(!haltedToday);
+  }
 
 //+------------------------------------------------------------------+
 int OnInit()
@@ -79,6 +128,8 @@ int OnInit()
    trade.SetExpertMagicNumber(InpMagic);
    trade.SetDeviationInPoints(30);
    peakEquity = AccountInfoDouble(ACCOUNT_EQUITY);
+   startBal = InpStartBalance > 0 ? InpStartBalance : AccountInfoDouble(ACCOUNT_BALANCE);
+   dayStartEq = AccountInfoDouble(ACCOUNT_EQUITY);
    EventSetTimer(30);   // check every 30s so all symbols are handled even if this chart is quiet
    PrintFormat("Reversion12 running on %d symbols", ArraySize(M));
    return(INIT_SUCCEEDED);
@@ -138,7 +189,7 @@ double LotsFor(const string s, double stopDist, double riskMoney)
   }
 
 //+------------------------------------------------------------------+
-void Process(Mkt &m)
+void Process(Mkt &m, bool mayOpen)
   {
    datetime bar = iTime(m.sym, PERIOD_D1, 0);
    if(bar == 0 || bar == m.lastBar) return;      // once per new daily bar
@@ -146,18 +197,24 @@ void Process(Mkt &m)
    double rsi = Buf(m.hRsi, 1), tr = Buf(m.hTrend, 1), ex = Buf(m.hExit, 1), at = Buf(m.hAtr, 1);
    double c1 = iClose(m.sym, PERIOD_D1, 1);
    if(rsi == EMPTY_VALUE || tr == EMPTY_VALUE || ex == EMPTY_VALUE || at == EMPTY_VALUE || at <= 0 || c1 <= 0) return;  // data not ready: retry next timer
-   m.lastBar = bar;
-
    ulong ticket; ENUM_POSITION_TYPE type; datetime opened; double rk;
    if(FindPos(m.sym, ticket, type, opened, rk))
      {
       // ---- exits: back across the exit SMA, or too old
       int daysOpen = iBarShift(m.sym, PERIOD_D1, opened);
       bool exitNow = (type == POSITION_TYPE_BUY && c1 > ex) || (type == POSITION_TYPE_SELL && c1 < ex) || daysOpen >= InpMaxDays;
-      if(exitNow && trade.PositionClose(ticket))
-         PrintFormat("Reversion12 %s: closed (%s)", m.sym, daysOpen >= InpMaxDays ? "time limit" : "back to the mean");
+      if(exitNow)
+        {
+         double v = pos.Volume(), px = pos.PriceCurrent();
+         if(!trade.PositionClose(ticket)) return;          // market closed / requote: retry on the next timer
+         string why = daysOpen >= InpMaxDays ? "time limit" : "back to the mean";
+         PrintFormat("Reversion12 %s: closed (%s)", m.sym, why); LogCsv("CLOSE", m.sym, v, px, why);
+        }
+      m.lastBar = bar;
       return;   // never re-enter on the same bar we exit
      }
+   if(!mayOpen) return;                                   // keep checking until the guards allow trading today
+   m.lastBar = bar;
 
    // ---- entries
    bool buy = rsi < InpRSILow && c1 > tr, sell = rsi > InpRSIHigh && c1 < tr;
@@ -179,21 +236,22 @@ void Process(Mkt &m)
    if(buy)
      {
       double ask = SymbolInfoDouble(m.sym, SYMBOL_ASK);
-      trade.Buy(lots, m.sym, ask, NormalizeDouble(ask - stop, dg), 0, InpComment);
+      if(trade.Buy(lots, m.sym, ask, NormalizeDouble(ask - stop, dg), 0, InpComment)) LogCsv("BUY", m.sym, lots, ask, StringFormat("RSI %.1f", rsi));
      }
    else
      {
       double bid = SymbolInfoDouble(m.sym, SYMBOL_BID);
-      trade.Sell(lots, m.sym, bid, NormalizeDouble(bid + stop, dg), 0, InpComment);
+      if(trade.Sell(lots, m.sym, bid, NormalizeDouble(bid + stop, dg), 0, InpComment)) LogCsv("SELL", m.sym, lots, bid, StringFormat("RSI %.1f", rsi));
      }
   }
 
 void RunAll()
   {
    peakEquity = MathMax(peakEquity, AccountInfoDouble(ACCOUNT_EQUITY));
-   for(int i = 0; i < ArraySize(M); i++) Process(M[i]);
-   Comment(StringFormat("Reversion12 · %d markets · open risk %.2f%% · peak-equity drop %.1f%%",
-           ArraySize(M), OpenRiskMoney() / MathMax(1, AccountInfoDouble(ACCOUNT_BALANCE)) * 100,
+   bool mayOpen = RiskGuards();
+   for(int i = 0; i < ArraySize(M); i++) Process(M[i], mayOpen);
+   Comment(StringFormat("Reversion12 · %d markets · %s · open risk %.2f%% · peak-equity drop %.1f%%",
+           ArraySize(M), haltedForGood ? "STOPPED" : haltedToday ? "PAUSED TODAY" : "trading", OpenRiskMoney() / MathMax(1, AccountInfoDouble(ACCOUNT_BALANCE)) * 100,
            peakEquity > 0 ? (peakEquity - AccountInfoDouble(ACCOUNT_EQUITY)) / peakEquity * 100 : 0));
   }
 
