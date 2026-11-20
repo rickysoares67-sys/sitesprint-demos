@@ -153,9 +153,45 @@ button:disabled{opacity:.45;cursor:not-allowed}
 .lines canvas{width:100%;height:auto;border-radius:6px}
 .foot{max-width:560px;margin:14px auto 0;text-align:center;color:var(--mute);font-size:13.5px;line-height:1.5}
 @media (prefers-reduced-motion:reduce){.logo,.bulbs i{animation:none}.ov h2{animation:none}}
+
+/* ---------- social-casino shell ---------- */
+.appbar{max-width:560px;margin:0 auto 10px;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px;background:linear-gradient(180deg,#1a0a16,#0c0509);border:1px solid rgba(243,210,122,.3);border-radius:14px;padding:8px 10px;min-width:0}
+.brand2{min-width:0;overflow:hidden;flex:1 1 120px}
+.brand2 b{font-family:var(--f-neon);font-size:clamp(14px,4.2vw,19px);color:#fff;text-shadow:0 0 10px var(--neon);display:block;line-height:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.brand2 small{font-size:8.5px;letter-spacing:.14em;color:var(--mute);white-space:nowrap}
+.wallet{display:flex;align-items:center;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+.freeb{font-family:var(--f-num);font-size:10.5px;letter-spacing:.04em;color:#2a0b00;background:linear-gradient(180deg,#ffe28a,#c98a12);border:0;border-radius:10px;padding:8px 9px;white-space:nowrap}
+.freeb.ready{color:#06300f;background:linear-gradient(180deg,#9fff8a,#1faa3c);animation:fcpulse 1.1s infinite}
+@keyframes fcpulse{50%{box-shadow:0 0 16px rgba(92,255,120,.85)}}
+.lvl{display:flex;flex-direction:column;align-items:center;justify-content:center;min-width:42px;background:rgba(0,0,0,.5);border:1px solid rgba(255,255,255,.12);border-radius:10px;padding:4px 7px}
+.lvl span{font-family:var(--f-num);font-size:14px;color:var(--chrome);line-height:1}
+.lvl small{font-size:7px;letter-spacing:.12em;color:var(--mute);margin-top:1px}
+.lvl i{display:block;width:32px;height:4px;border-radius:3px;background:rgba(255,255,255,.14);margin-top:3px;overflow:hidden}
+.lvl em{display:block;height:100%;background:linear-gradient(90deg,#28e6ff,#5cff9d);width:0}
+.coins{display:flex;align-items:center;gap:6px;background:rgba(0,0,0,.55);border:1px solid rgba(243,210,122,.4);border-radius:999px;padding:5px 5px 5px 9px}
+.coins .cc{width:15px;height:15px;border-radius:50%;background:radial-gradient(circle at 40% 35%,#fff3c0,#ffcf3d 55%,#a86a00);box-shadow:0 0 6px rgba(255,200,60,.6);flex:none}
+.coins b{font-family:var(--f-num);font-size:14px;color:#ffe9a8;font-variant-numeric:tabular-nums}
+.coins u{width:21px;height:21px;border-radius:50%;background:linear-gradient(180deg,#9fff8a,#1faa3c);color:#06300f;text-decoration:none;font-family:var(--f-num);font-size:15px;display:grid;place-items:center;flex:none}
+.wheel{position:fixed;inset:0;z-index:60;background:rgba(4,1,6,.9);display:flex;align-items:flex-start;justify-content:center;overflow:auto;padding:24px max(16px,env(safe-area-inset-right,0px)) 40px max(16px,env(safe-area-inset-left,0px))}
+.wheelc{width:100%;max-width:400px;text-align:center;background:linear-gradient(180deg,#1d0710,#0b0307);border:1px solid rgba(243,210,122,.4);border-radius:18px;padding:18px}
+.wheelc h3{font-family:var(--f-num);color:var(--chrome);font-size:22px;margin:0;letter-spacing:.04em}
+.wheelc p{color:var(--ink);font-size:15px;margin:6px 0 10px;min-height:20px}
+.wheelwrap{position:relative;width:min(320px,78vw);margin:0 auto}
+.wheelwrap canvas{width:100%;height:auto;display:block;filter:drop-shadow(0 10px 30px rgba(0,0,0,.6))}
+.pointer{position:absolute;top:-4px;left:50%;transform:translateX(-50%);width:0;height:0;border-left:13px solid transparent;border-right:13px solid transparent;border-top:24px solid var(--chrome);z-index:2;filter:drop-shadow(0 2px 3px #000)}
+.wheelc .go{display:block;width:72%;margin:14px auto 8px}
+.wheelc .chip{display:inline-block;padding:8px 18px}
 </style>
 </head><body>
 
+<div class="appbar">
+  <div class="brand2"><b>SpinRush</b><small>SOCIAL CASINO · FREE PLAY</small></div>
+  <div class="wallet">
+    <button class="freeb" id="freeBtn">FREE COINS</button>
+    <div class="lvl" id="lvlPill"><span id="lvlNum">1</span><i><em id="xpBar"></em></i><small>LVL</small></div>
+    <button class="coins" id="coinsBtn" aria-label="Get free coins"><span class="cc"></span><b id="topCoins">25,000</b><u>+</u></button>
+  </div>
+</div>
 <nav class="lobby" aria-label="Choose a game">
   <button class="gbtn" data-g="neon"><b>NEON SEVENS</b><small>25 lines · free spins</small></button>
   <button class="gbtn" data-g="classic"><b>DIAMOND FIRE</b><small>classic 3-reel</small></button>
@@ -219,6 +255,15 @@ button:disabled{opacity:.45;cursor:not-allowed}
 <p class="foot">Free-play games. Credits are for fun only, have no cash value and cannot be bought or cashed out.
 Every game pays back about 84% on average, checked with millions of simulated spins. Open PAYTABLE to see the odds and run your own test.</p>
 
+<div class="wheel" id="wheelM" hidden>
+ <div class="wheelc">
+  <h3>DAILY FREE COINS</h3>
+  <p id="wheelMsg">Spin for your free coins!</p>
+  <div class="wheelwrap"><div class="pointer"></div><canvas id="wheelCv" width="320" height="320"></canvas></div>
+  <button class="go" id="wheelSpin">SPIN</button>
+  <button class="chip" id="wheelClose">Close</button>
+ </div>
+</div>
 <div class="pt" id="pt" hidden>
  <div class="ptc">
   <h3 id="ptTitle">PAYTABLE</h3>
@@ -245,7 +290,7 @@ function rr(x,c,y,w,h,r){x.beginPath();x.moveTo(c+r,y);x.arcTo(c+w,y,c+w,y+h,r);
 function mulberry(a){return function(){a|=0;a=a+0x6D2B79F5|0;var t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
 
 /* =============================== SOUND =============================== */
-var S={credits:25000,game:'neon',lines:25,gambleAmt:0,lvl:{neon:0,classic:0,gold:0},coins:3,turbo:false,auto:0,sound:true,busy:false,stopReq:false,
+var S={credits:25000,game:'neon',lines:25,gambleAmt:0,level:1,xp:0,lastWheel:0,lvl:{neon:0,classic:0,gold:0},coins:3,turbo:false,auto:0,sound:true,busy:false,stopReq:false,
   fsLeft:0,fsTotal:0,fsWon:0,feature:false};
 var AC=null,master=null;
 function audio(){if(!S.sound)return null;if(!AC){try{AC=new(window.AudioContext||window.webkitAudioContext)();master=AC.createGain();master.gain.value=.55;master.connect(AC.destination)}catch(e){return null}}
@@ -437,8 +482,8 @@ function gridOf(gm,st){var g=[];for(var r=0;r<gm.rows;r++){g.push([]);for(var c=
 
 /* =============================== SAVE =============================== */
 try{var sv=JSON.parse(localStorage.getItem('spinrush-v2')||'null');if(sv&&isFinite(sv.credits)){S.credits=Math.max(0,Math.floor(sv.credits));S.sound=sv.sound!==false;S.turbo=!!sv.turbo;
-  if(sv.lvl)for(var k in S.lvl)S.lvl[k]=Math.max(0,sv.lvl[k]|0);if(sv.coins)S.coins=Math.min(3,Math.max(1,sv.coins|0));if(GAMES[sv.game])S.game=sv.game;if([1,5,10,15,20,25].indexOf(sv.lines|0)>=0)S.lines=sv.lines|0}}catch(e){}
-function save(){try{localStorage.setItem('spinrush-v2',JSON.stringify({credits:S.credits,sound:S.sound,turbo:S.turbo,lvl:S.lvl,coins:S.coins,game:S.game,lines:S.lines}))}catch(e){}}
+  if(sv.lvl)for(var k in S.lvl)S.lvl[k]=Math.max(0,sv.lvl[k]|0);if(sv.coins)S.coins=Math.min(3,Math.max(1,sv.coins|0));if(GAMES[sv.game])S.game=sv.game;if([1,5,10,15,20,25].indexOf(sv.lines|0)>=0)S.lines=sv.lines|0;if(sv.level)S.level=Math.max(1,sv.level|0);if(sv.xp)S.xp=Math.max(0,sv.xp|0);if(sv.lastWheel)S.lastWheel=+sv.lastWheel||0}}catch(e){}
+function save(){try{localStorage.setItem('spinrush-v2',JSON.stringify({credits:S.credits,sound:S.sound,turbo:S.turbo,lvl:S.lvl,coins:S.coins,game:S.game,lines:S.lines,level:S.level,xp:S.xp,lastWheel:S.lastWheel}))}catch(e){}}
 
 /* =============================== RENDERER =============================== */
 var cv=$('reels'),cx=cv.getContext('2d'),fx=$('fx'),fxx=fx.getContext('2d'),DPR=1,CW=0,CH=0,cw=0,ch=0,SPR=[],SPRB=[],CELL=0;
@@ -532,7 +577,7 @@ async function spinReels(){
 /* =============================== UI =============================== */
 function msg(t){$('msg').textContent=t}
 function paintLadder(){var L=G.ladder();$('jps').innerHTML=L.map(function(l,i){return'<div class="jp" id="jp'+i+'"><small>'+l[0]+'</small><b>'+fmt(l[1])+'</b><em>'+l[2]+'</em></div>'}).join('')}
-function paint(){
+function paint(){paintTop();
   $('credM').textContent=fmt(S.credits);$('betM').textContent=fmt(G.bet());$('lineB').textContent=fmt(G.betShow());$('betLbl').textContent=G.betLabel;
   paintLadder();
   $('coinhint').textContent=G.classic?('COINS: '+'●'.repeat(S.coins)+'○'.repeat(3-S.coins)+(S.coins<3?'   BET 3 FOR THE 5,000 BONUS':'   MAX COIN BONUS ON')):(G.id==='neon'?('PLAYING '+S.lines+' OF 25 LINES   ·   TOTAL BET '+fmt(G.bet())+' CREDITS'):'');
@@ -607,7 +652,7 @@ async function play(){
   if(S.busy)return;var free=S.fsLeft>0,bet=G.bet();
   if(!free&&S.credits<bet){msg('Not enough credits for this bet. Lower the bet or press TOP UP.');S.auto=0;paint();return}
   S.busy=true;S.stopReq=false;audio();
-  if(!free){S.credits-=bet;SND.coin()}else S.fsLeft--;
+  if(!free){S.credits-=bet;addXp(bet);SND.coin()}else S.fsLeft--;
   $('winM').querySelector('b').textContent='0';msg(free?'Free spin '+(S.fsTotal-S.fsLeft)+' of '+S.fsTotal+'…':'Good luck!');paint();save();
   var out=await spinReels(),res=G.evaluate(out.g,G.unit(),G.id==='gold'?out.stops:(G.id==='neon'?S.lines:undefined)),mult=free?NEON.fsMult:1;
   var won=await present(res,mult);
@@ -622,6 +667,7 @@ async function play(){
   if(S.fsLeft>0){await sleep(S.turbo?250:550);return play()}
   if($('cab').classList.contains('free')){$('cab').classList.remove('free');paint();if(S.fsWon>0){SND.big();burst(80,1.1)}
     await overlay('<h2>BONUS TOTAL</h2><div class="amt">'+fmt(S.fsWon)+'</div><p>'+S.fsTotal+' free spins played.</p>',S.auto?3000:0,'COLLECT');msg('Free spins paid '+fmt(S.fsWon)+' credits.')}
+  if(S._lvlUp&&!free&&!res.hw){var lu=S._lvlUp;S._lvlUp=null;S.credits+=lu.reward;SND.big();await overlay('<h2 class="epic">LEVEL '+S.level+'</h2><div class="amt">+'+fmt(lu.reward)+' COINS</div><p>VIP level up! Your daily wheel grows as you climb.</p>',S.auto?2200:0,'COLLECT');paintTop()}
   if(won>0&&!free&&!res.hw&&!res.fs&&S.auto===0&&won<=5000){S.gambleAmt=won;msg('You won '+fmt(won)+'. Press GAMBLE to risk it, or SPIN to keep it.')}
   if(S.auto!==0){if(S.auto>0)S.auto--;paint();if(S.auto!==0){await sleep(S.turbo?200:500);if(S.auto!==0)return play()}}
   paint();save()}
@@ -679,6 +725,11 @@ $('refillBtn').onclick=function(){SND.click();if(S.busy||S.feature)return;if(S.c
 document.querySelectorAll('.gbtn').forEach(function(b){b.onclick=function(){SND.click();setGame(b.dataset.g)}});
 document.addEventListener('keydown',function(e){if(e.code==='Space'&&$('pt').hidden&&$('ov').hidden){e.preventDefault();$('spinBtn').click()}});
 
+$('freeBtn').onclick=function(){SND.click();openWheel()};
+$('coinsBtn').onclick=function(){SND.click();openWheel()};
+$('wheelSpin').onclick=function(){SND.click();spinWheel()};
+$('wheelClose').onclick=function(){SND.click();$('wheelM').hidden=true;paint()};
+
 /* paytable */
 $('ptBtn').onclick=function(){SND.click();$('ptTitle').textContent=G.title.toUpperCase()+' · PAYTABLE';$('ptBody').innerHTML=G.paytable();
   $('ptBody').querySelectorAll('canvas[data-s]').forEach(function(c){var x=c.getContext('2d');if(G.classic){x.fillStyle='#fffdf6';x.fillRect(0,0,104,104)}ART[G.id](x,+c.dataset.s,104)});
@@ -693,6 +744,38 @@ $('simBtn').onclick=function(){var btn=this,gm=G,N=100000,done=0,bet=0,ret=0,hit
     $('simOut').textContent='Spun '+fmt(done)+' times · paid back '+(ret/bet*100).toFixed(1)+'%';
     if(done<N)setTimeout(chunk,0);else{GOLD.vals=saved;$('simOut').textContent='100,000 spins: paid back '+(ret/bet*100).toFixed(1)+'% · '+(hits/N*100).toFixed(0)+'% of spins paid'+(feat?' · bonus '+feat+' times':'')+'. Short runs swing around the long-run rate, '+(gm.id==='gold'?'and Gold Rush swings the most.':'which is normal.');btn.disabled=false;kick()}})()};
 
+/* ---------- social-casino: level, free-coin wheel ---------- */
+function xpNeed(l){return 800+l*700}
+function addXp(a){S.xp+=a;var rew=0;while(S.xp>=xpNeed(S.level)){S.xp-=xpNeed(S.level);S.level++;rew+=S.level*2000}if(rew)S._lvlUp={reward:rew}}
+function paintTop(){var tc=$('topCoins');if(!tc)return;tc.textContent=fmt(S.credits);$('lvlNum').textContent=S.level;
+  $('xpBar').style.width=Math.min(100,S.xp/xpNeed(S.level)*100)+'%';
+  var fb=$('freeBtn'),r=wheelReady();fb.classList.toggle('ready',r);fb.textContent=r?'● FREE COINS':'FREE COINS'}
+var WHEEL={prizes:[1500,3000,1000,5000,2000,10000,2500,25000],weights:[20,16,24,10,18,6,14,2],rot:-Math.PI/2};
+function wheelReady(){return Date.now()-S.lastWheel>=20*3600*1000}
+function wPick(){var t=0,i;for(i=0;i<WHEEL.weights.length;i++)t+=WHEEL.weights[i];var r=rnd(t);for(i=0;i<WHEEL.weights.length;i++){if(r<WHEEL.weights[i])return i;r-=WHEEL.weights[i]}return 0}
+function drawWheel(){var cv=$('wheelCv');if(!cv)return;var x=cv.getContext('2d'),N=WHEEL.prizes.length,R=150;
+  x.clearRect(0,0,320,320);x.save();x.translate(160,160);x.rotate(WHEEL.rot);
+  for(var i=0;i<N;i++){var a0=i/N*6.2831853,a1=(i+1)/N*6.2831853,big=WHEEL.prizes[i]>=10000;
+    x.beginPath();x.moveTo(0,0);x.arc(0,0,R,a0,a1);x.closePath();
+    x.fillStyle=big?(i%2?'#9a5a00':'#b86f00'):(i%2?'#2a1038':'#4a134f');x.fill();
+    x.strokeStyle='rgba(255,215,120,.55)';x.lineWidth=2;x.stroke();
+    x.save();x.rotate((a0+a1)/2);x.textAlign='right';x.fillStyle=big?'#fff7d6':'#fff4dc';x.font='700 '+(big?20:17)+'px Bungee, Impact, sans-serif';
+    x.shadowColor='#000';x.shadowBlur=3;x.fillText(fmt(WHEEL.prizes[i]),R-12,6);x.restore()}
+  x.restore();
+  x.beginPath();x.arc(160,160,28,0,6.2831853);x.fillStyle='#f3d27a';x.fill();x.lineWidth=3;x.strokeStyle='#8a5a12';x.stroke();
+  x.fillStyle='#2a0b00';x.font='700 11px Bungee, Impact, sans-serif';x.textAlign='center';x.textBaseline='middle';x.fillText('SPIN',160,160)}
+function openWheel(){$('wheelM').hidden=false;drawWheel();WHEEL.spinning=false;
+  if(wheelReady()){$('wheelMsg').textContent='Your daily bonus is ready — spin for free coins!';$('wheelSpin').hidden=false;$('wheelSpin').disabled=false;$('wheelClose').textContent='Close'}
+  else{var ms=20*3600*1000-(Date.now()-S.lastWheel),h=Math.floor(ms/3600000),m=Math.floor(ms%3600000/60000);
+    $('wheelMsg').textContent='Next free coins in '+h+'h '+m+'m. Coins are free and have no cash value.';$('wheelSpin').hidden=true;$('wheelClose').textContent='Close'}}
+function spinWheel(){if(WHEEL.spinning||!wheelReady())return;WHEEL.spinning=true;$('wheelSpin').disabled=true;audio();
+  var idx=wPick(),N=WHEEL.prizes.length,center=(idx+0.5)/N*6.2831853,target=-1.5707963-center,from=WHEEL.rot;
+  var turns=5*6.2831853,final=target+turns;while(final<from+turns-0.5)final+=6.2831853;
+  var dur=RM?500:4200,t0=performance.now();SND.tease();
+  (function anim(now){var p=Math.min(1,(now-t0)/dur),e=1-Math.pow(1-p,3);WHEEL.rot=from+(final-from)*e;drawWheel();
+    if(p<1)requestAnimationFrame(anim);else{WHEEL.spinning=false;var prize=WHEEL.prizes[idx];S.credits+=prize;S.lastWheel=Date.now();
+      SND.big();$('wheelMsg').textContent='You won '+fmt(prize)+' free coins!';$('wheelSpin').hidden=true;$('wheelClose').textContent='Collect';paintTop();paint();save()}})(t0)}
+
 /* boot */
 (function(){var h='';for(var i=0;i<24;i++)h+='<i style="animation-delay:'+(i%3*.4)+'s"></i>';$('bt').innerHTML=h;$('bb').innerHTML=h})();
 new ResizeObserver(function(){resize()}).observe($('win'));
@@ -701,6 +784,7 @@ if(location.hash==='#selftest')window.__sr={hw:function(n){setGame('gold');GOLD.
   game:setGame,exact:function(){var st=CLASSIC.strips,t={1:0,3:0},n=0;for(var a=0;a<st[0].length;a++)for(var b=0;b<st[1].length;b++)for(var c=0;c<st[2].length;c++){var l=[st[0][a],st[1][b],st[2][c]];t[1]+=CLASSIC.pay(l,1).v;t[3]+=CLASSIC.pay(l,3).v/3;n++}return[t[1]/n,t[3]/n,st.map(function(s){return s.length})]},
   setLines:function(n){S.lines=n;paint()},bet:function(){return G.bet()},
   gamble:function(a){S.gambleAmt=a;return gamble()},
+  wheel:function(){S.lastWheel=0;openWheel();spinWheel()},setXp:function(l,x){S.level=l;S.xp=x;paintTop()},lvlState:function(){return{level:S.level,xp:S.xp,lastWheel:S.lastWheel,credits:S.credits}},
   state:function(){return{credits:S.credits,busy:S.busy,feature:S.feature,game:G.id,lines:S.lines,bet:G.bet(),gambleAmt:S.gambleAmt}}};
 if(document.fonts&&document.fonts.load)Promise.all([document.fonts.load('400 40px Bungee'),document.fonts.load('400 40px Monoton'),document.fonts.load('400 40px Rye')]).then(boot,boot);else boot();
 })();
