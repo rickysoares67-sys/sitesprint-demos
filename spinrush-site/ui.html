@@ -1,0 +1,245 @@
+<title>SpinRush</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Playfair+Display:wght@700;800;900&display=swap">
+<style>
+/* Layout: SpinRush signature collection. Lobby = brand bar, hero world, search + family chips, poster grid.
+   Game = world-lit stage with canvas reels, meters, betting deck (lines × bet per line), rules sheet.
+   One deliberate dark look in the site's own palette: night ink, purple velvet, gold. */
+:root{
+  --ink:#090b1d; --ink2:#100c26; --velvet:#1c1238; --panel:#171131; --line:rgba(237,204,137,.24);
+  --gold:#edcc89; --gold2:#c79a3e; --gold3:#fff1c9; --txt:#f4eeff; --muted:#9994b4; --win:#86f7b5; --loss:#ff7b8a;
+  --f-disp:"Playfair Display",Georgia,"Times New Roman",serif; --f-body:Inter,system-ui,-apple-system,"Segoe UI",sans-serif;
+  color-scheme:dark;
+}
+*,*::before,*::after{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;background:radial-gradient(1100px 620px at 50% -12%,#3b1d63 0%,transparent 62%),linear-gradient(180deg,#120b2a,var(--ink) 40%);
+  color:var(--txt);font:15px/1.5 var(--f-body);-webkit-font-smoothing:antialiased;
+  padding-left:max(14px,env(safe-area-inset-left,0px));padding-right:max(14px,env(safe-area-inset-right,0px));padding-block:10px 40px;overflow-x:hidden}
+button{font:inherit;color:inherit;cursor:pointer;-webkit-tap-highlight-color:transparent}
+button:focus-visible,input:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+button:disabled{opacity:.42;cursor:not-allowed}
+.wrap{max-width:1040px;margin:0 auto}
+.num{font-variant-numeric:tabular-nums}
+
+/* ---- top bar ---- */
+.top{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:4px 2px 12px}
+.brand{height:46px;width:auto;display:block;max-width:56vw}
+.bal{border:1px solid var(--gold2);border-radius:12px;padding:5px 12px;text-align:right;background:linear-gradient(180deg,#24173f,#120c26);box-shadow:inset 0 1px 0 rgba(255,241,201,.12)}
+.bal small{display:block;font-size:9.5px;letter-spacing:.16em;color:var(--muted);text-transform:uppercase}
+.bal b{font-family:var(--f-disp);font-size:clamp(16px,4.4vw,21px);color:var(--gold3);letter-spacing:.01em}
+
+/* ---- hero ---- */
+.hero{position:relative;border-radius:18px;overflow:hidden;border:1px solid var(--line);min-height:300px;display:flex;align-items:flex-end;background:#160d2c}
+.hero .art{position:absolute;inset:0}
+.hero .art svg{width:100%;height:100%;display:block}
+.hero::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(9,11,29,.15) 0%,rgba(9,11,29,.35) 30%,rgba(9,11,29,.8) 62%,rgba(9,11,29,.95))}
+.hero .in{position:relative;z-index:1;padding:18px;width:100%}
+.eyebrow{font-size:10.5px;letter-spacing:.2em;text-transform:uppercase;color:#e6c8ff;text-shadow:0 1px 6px #000}
+.hero h1{font-family:var(--f-disp);font-size:clamp(30px,8vw,46px);line-height:1.04;margin:4px 0 6px;color:var(--gold3);text-wrap:balance}
+.hero p{margin:0 0 12px;color:#e2dbf5;max-width:46ch}
+.cta{display:inline-flex;align-items:center;gap:8px;border:0;border-radius:12px;padding:12px 18px;font-weight:800;letter-spacing:.04em;font-size:13px;color:#2b1702;
+  background:linear-gradient(180deg,#ffe6a8,#e1ad4f 55%,#b07a24);box-shadow:0 6px 18px rgba(225,173,79,.28)}
+.pills{display:flex;gap:6px;flex-wrap:wrap;margin-top:12px}
+.pill{border:1px solid rgba(237,204,137,.35);background:rgba(16,12,38,.6);border-radius:999px;padding:6px 12px;font-size:12px;color:#e9e2ff}
+.pill.on{background:var(--gold);color:#2b1702;border-color:transparent;font-weight:700}
+
+/* ---- collection ---- */
+.coll h2{font-family:var(--f-disp);font-size:clamp(24px,5.6vw,30px);color:var(--gold);margin:26px 0 2px}
+.coll .sub{color:var(--muted);font-size:13px;margin:0 0 12px}
+.search{width:100%;background:#120d28;border:1px solid var(--line);border-radius:12px;padding:12px 14px;color:var(--txt);font:inherit}
+.chips{display:flex;gap:8px;overflow-x:auto;padding:12px 2px 6px;scrollbar-width:none}
+.chips::-webkit-scrollbar{display:none}
+.chip{flex:none;border:1px solid rgba(237,204,137,.32);background:#160f30;border-radius:999px;padding:8px 13px;font-size:12.5px;white-space:nowrap;color:#e9e2ff}
+.chip b{color:var(--gold);font-weight:700;margin-left:5px}
+.chip.on{background:linear-gradient(180deg,#3d2a12,#2a1c0b);border-color:var(--gold);color:var(--gold3)}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(158px,1fr));gap:12px;margin-top:8px}
+.card{position:relative;border:1px solid var(--line);border-radius:14px;overflow:hidden;background:#140e2c;text-align:left;padding:0;display:flex;flex-direction:column;min-width:0}
+.card img{width:100%;aspect-ratio:4/3;object-fit:cover;display:block;background:#1d1438}
+.card .meta{padding:9px 10px 11px}
+.card .nm,.card .fm{display:block}
+.card .nm{font-weight:700;font-size:14px;line-height:1.25;color:var(--txt)}
+.card .fm{font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-top:2px}
+.card .rt{position:absolute;top:8px;right:8px;font-size:10.5px;font-weight:700;background:rgba(9,11,29,.78);border:1px solid var(--line);border-radius:999px;padding:3px 8px;color:var(--gold3)}
+.empty{color:var(--muted);padding:30px 0;text-align:center}
+.foot{color:var(--muted);font-size:12px;text-align:center;margin:30px auto 0;max-width:60ch;line-height:1.6}
+
+/* ---- game ---- */
+.game{max-width:640px;margin:0 auto}
+.ghead{display:flex;align-items:center;gap:10px;padding:2px 0 10px}
+.back{width:40px;height:40px;border-radius:12px;border:1px solid var(--line);background:#160f30;font-size:22px;line-height:1;flex:none}
+.gt{flex:1;min-width:0}
+.gt b{display:block;font-family:var(--f-disp);font-size:clamp(19px,5vw,24px);color:var(--gold3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.15}
+.gt small{font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+.gbal{flex:none}
+.jps{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:8px}
+.jp{border:1px solid var(--line);border-radius:10px;padding:5px 4px;text-align:center;background:linear-gradient(180deg,#1e1540,#110b26);min-width:0}
+.jp small{display:block;font-size:9px;letter-spacing:.14em;font-weight:800}
+.jp b{display:block;font-size:clamp(11px,3.2vw,14px);color:var(--gold3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.jp:nth-child(1) small{color:#ff7d94}.jp:nth-child(2) small{color:#ffab5c}.jp:nth-child(3) small{color:#6fd6ff}.jp:nth-child(4) small{color:#8cf5a8}
+.jp.hit{animation:jph .26s 12 alternate}@keyframes jph{to{background:#5a2a00;border-color:#fff}}
+.stage{position:relative;border-radius:18px;padding:7px;background:linear-gradient(145deg,#fff0b8,#b8862f 22%,#3a2408 48%,#e0b44f 76%,#fff3c4)}
+.world{position:absolute;inset:7px;border-radius:12px;overflow:hidden}
+.world svg{width:100%;height:100%;display:block;filter:saturate(1.05) brightness(.62)}
+.window{position:relative;border-radius:12px;overflow:hidden;aspect-ratio:5/3.12;max-width:100%}
+#reels,#fx{position:absolute;inset:0;width:100%;height:100%;display:block}
+#fx{pointer-events:none}
+.band{position:absolute;left:0;right:0;top:0;z-index:4;text-align:center;font-size:12px;font-weight:800;letter-spacing:.12em;padding:5px 8px;
+  background:linear-gradient(90deg,transparent,rgba(120,40,190,.92),transparent);color:#fff;text-shadow:0 1px 2px #000}
+.band.hold{background:linear-gradient(90deg,transparent,rgba(190,120,10,.95),transparent)}
+.meters{display:grid;grid-template-columns:1.25fr 1fr 1.1fr;gap:6px;margin-top:10px}
+.meter{border:1px solid var(--line);border-radius:12px;padding:6px 8px;text-align:center;background:#130d2b;min-width:0}
+.meter small{display:block;font-size:9.5px;letter-spacing:.16em;color:var(--muted);text-transform:uppercase}
+.meter b{display:block;font-size:clamp(14px,4.2vw,18px);font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#winM b{color:var(--win)}
+.msg{min-height:22px;text-align:center;color:var(--gold);font-size:14px;padding:8px 6px 2px}
+.deck{display:grid;grid-template-columns:1fr auto 1fr;gap:10px;align-items:center;margin-top:8px}
+.side{display:flex;flex-direction:column;gap:6px;min-width:0}
+.stepper{display:flex;align-items:center;justify-content:space-between;gap:4px;border:1px solid var(--line);border-radius:12px;padding:4px;background:#130d2b}
+.stepper button{width:34px;height:34px;border-radius:10px;border:1px solid rgba(237,204,137,.35);background:linear-gradient(180deg,#2c1f4d,#170f31);font-size:19px;color:var(--gold);flex:none}
+.stepper div{text-align:center;line-height:1.05;min-width:0}
+.stepper small{display:block;font-size:9px;letter-spacing:.14em;color:var(--muted);text-transform:uppercase;white-space:nowrap}
+.stepper b{font-size:14px;font-weight:800;white-space:nowrap}
+.spin{width:98px;height:98px;border-radius:50%;border:3px solid #fff3c9;font-weight:900;font-size:17px;letter-spacing:.08em;color:#2b1702;
+  background:radial-gradient(circle at 50% 30%,#fff7d8,#f1c766 42%,#c2862b 76%,#6f4410);box-shadow:0 7px 0 #5c370c,0 12px 28px rgba(0,0,0,.6),0 0 26px rgba(241,199,102,.45);transition:transform .08s,box-shadow .08s}
+.spin:active{transform:translateY(5px);box-shadow:0 2px 0 #5c370c,0 6px 16px rgba(0,0,0,.6)}
+.spin.stop{background:radial-gradient(circle at 50% 30%,#ffd6e2,#ff5b86 45%,#a8133f 82%);color:#fff}
+.btn{height:36px;border-radius:11px;border:1px solid rgba(237,204,137,.32);background:#170f31;font-size:11.5px;font-weight:700;letter-spacing:.08em;white-space:nowrap;padding:0 8px}
+.btn.on{background:linear-gradient(180deg,#8a49e0,#5a22b0);border-color:transparent}
+.btn.gold{background:linear-gradient(180deg,#ffe6a8,#d39f45);color:#2b1702;border-color:transparent}
+.btn.green{background:linear-gradient(180deg,#9ff5b9,#2fa45c);color:#06230f;border-color:transparent;animation:gpulse 1.1s infinite}
+@keyframes gpulse{50%{box-shadow:0 0 16px rgba(134,247,181,.8)}}
+.util{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:10px}
+.betline{text-align:center;font-size:12px;color:var(--muted);margin-top:8px}
+.betline b{color:var(--gold3)}
+
+/* ---- overlays & sheets ---- */
+.ov{position:absolute;inset:0;z-index:20;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:16px;
+  background:radial-gradient(circle,rgba(28,10,48,.55),rgba(6,4,16,.9));border-radius:12px}
+.ov h2{margin:0;font-family:var(--f-disp);font-size:clamp(28px,8.5vw,52px);line-height:1;background:linear-gradient(180deg,#fffbe6,#f3cf6f 48%,#c27a1e);
+  -webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 3px 0 #3a1c00);animation:pop .45s cubic-bezier(.2,1.6,.4,1)}
+.ov h2.mega{background-image:linear-gradient(180deg,#fff,#ffb3d0 40%,#e2387a)}
+.ov h2.epic{background-image:linear-gradient(180deg,#fff,#b9f3ff 40%,#3ab9e6)}
+.ov .amt{font-size:clamp(24px,7vw,40px);font-weight:900;margin-top:8px;text-shadow:0 0 16px rgba(255,255,255,.5)}
+.ov p{max-width:34ch;margin:8px 0 0;color:#efe8ff}
+.ov .go{margin-top:14px;border:0;border-radius:999px;padding:11px 24px;font-weight:900;letter-spacing:.06em;color:#2b1702;background:linear-gradient(180deg,#fff0bf,#e9b44e)}
+.ov .row{display:flex;gap:10px;justify-content:center;margin-top:12px}
+.ov .red{background:linear-gradient(180deg,#ff8aa0,#c0122f);color:#fff}
+.ov .black{background:linear-gradient(180deg,#4b5266,#0b0e16);color:#fff;border:1px solid #5d6680}
+.card2{width:92px;height:128px;margin:12px auto 0;border-radius:12px;border:2px solid var(--gold);display:grid;place-items:center;font-size:52px;color:#fff;background:linear-gradient(160deg,#2a3348,#0f1422)}
+.card2.r{background:linear-gradient(160deg,#ff5370,#8c0d24)}.card2.b{background:linear-gradient(160deg,#30384b,#06080e)}
+@keyframes pop{from{transform:scale(.25);opacity:0}}
+.sheet{position:fixed;inset:0;z-index:50;background:rgba(5,4,14,.86);display:flex;justify-content:center;align-items:flex-start;overflow:auto;
+  padding:20px max(14px,env(safe-area-inset-right,0px)) 40px max(14px,env(safe-area-inset-left,0px))}
+.sheet .box{width:100%;max-width:620px;background:linear-gradient(180deg,#1b1238,#0e0a22);border:1px solid var(--line);border-radius:18px;padding:18px}
+.sheet h3{font-family:var(--f-disp);color:var(--gold);font-size:22px;margin:0 0 4px}
+.sheet h4{font-size:11.5px;letter-spacing:.16em;text-transform:uppercase;color:#d7a6ff;margin:18px 0 8px}
+.sheet p{color:#e6e0f7;margin:6px 0}
+.pays{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:8px}
+.pay{display:flex;gap:8px;align-items:center;border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:6px;background:#100b25;min-width:0}
+.pay canvas{width:52px;height:52px;flex:none}
+.pay div{font-size:12.5px;line-height:1.35;min-width:0}
+.pay div b{display:block;color:var(--gold3);font-size:12.5px}
+.stats{width:100%;border-collapse:collapse;font-size:14px}
+.stats td{padding:7px 4px;border-bottom:1px solid rgba(255,255,255,.08)}
+.stats td:last-child{text-align:right;color:var(--gold3);font-weight:700}
+.lines{display:grid;grid-template-columns:repeat(auto-fill,minmax(56px,1fr));gap:6px}
+.lines canvas{width:100%;height:auto;border-radius:6px}
+.sheet .row{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.sheet .row .btn{flex:1;min-width:150px;height:40px}
+.gate .box{max-width:420px;text-align:center;margin-top:12vh}
+@media (min-width:860px){.hero{min-height:380px}.hero .in{padding:28px}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+
+<div class="wrap" id="lobby">
+  <div class="top">
+    <img class="brand" src="static/assets/art49/brand.svg" alt="SpinRush">
+    <div class="bal"><small>Virtual balance · ZAR</small><b class="num" id="lobBal">R 25 000,00</b></div>
+  </div>
+  <section class="hero" id="hero" aria-label="Featured game">
+    <div class="art" id="heroArt"></div>
+    <div class="in">
+      <div class="eyebrow">The SpinRush signature collection</div>
+      <h1 id="heroTitle">Diamond Fire</h1>
+      <p id="heroText"></p>
+      <button class="cta" id="heroPlay">PLAY ↗</button>
+      <div class="pills" id="heroPills"></div>
+    </div>
+  </section>
+  <section class="coll">
+    <h2>The signature collection</h2>
+    <p class="sub" id="collSub">40 games · find your next world.</p>
+    <input class="search" id="q" type="search" placeholder="Find your game" aria-label="Find your game">
+    <div class="chips" id="chips" role="tablist" aria-label="Game styles"></div>
+    <div class="grid" id="grid"></div>
+    <p class="empty" id="empty" hidden>No game matches that search.</p>
+  </section>
+  <p class="foot">18+ · SpinRush uses virtual play-money credits only. No deposits, cash prizes or withdrawals. Every game pays back about 84% on average, checked with millions of simulated spins.</p>
+</div>
+
+<div class="game" id="gameView" hidden>
+  <div class="ghead">
+    <button class="back" id="back" aria-label="Back to the collection">‹</button>
+    <div class="gt"><b id="gName">Game</b><small id="gFam">family</small></div>
+    <div class="bal gbal"><small>Balance</small><b class="num" id="gBal">R 0,00</b></div>
+  </div>
+  <div class="jps" id="jps" hidden></div>
+  <div class="stage">
+    <div class="world" id="world"></div>
+    <div class="window" id="win">
+      <canvas id="reels" aria-label="Slot reels"></canvas>
+      <canvas id="fx"></canvas>
+      <div class="band" id="band" hidden></div>
+      <div class="ov" id="ov" hidden></div>
+    </div>
+  </div>
+  <div class="meters">
+    <div class="meter"><small>Balance</small><b class="num" id="balM">R 0,00</b></div>
+    <div class="meter"><small>Total bet</small><b class="num" id="betM">R 0,00</b></div>
+    <div class="meter" id="winM"><small>Win</small><b class="num">R 0,00</b></div>
+  </div>
+  <div class="msg" id="msg" aria-live="polite">Choose your lines and bet, then spin.</div>
+  <div class="deck">
+    <div class="side">
+      <div class="stepper"><button id="linDn" aria-label="Fewer lines">−</button><div><small>Lines</small><b class="num" id="linV">10</b></div><button id="linUp" aria-label="More lines">+</button></div>
+      <div class="stepper"><button id="lbDn" aria-label="Lower bet per line">−</button><div><small>Bet / line</small><b class="num" id="lbV">R 0,10</b></div><button id="lbUp" aria-label="Raise bet per line">+</button></div>
+    </div>
+    <button class="spin" id="spinBtn">SPIN</button>
+    <div class="side">
+      <button class="btn gold" id="maxBtn">MAX BET</button>
+      <button class="btn" id="autoBtn">AUTO</button>
+      <button class="btn" id="turboBtn">TURBO</button>
+    </div>
+  </div>
+  <div class="betline" id="betline"></div>
+  <div class="util">
+    <button class="btn" id="rulesBtn">RULES</button>
+    <button class="btn" id="gambleBtn" disabled>GAMBLE</button>
+    <button class="btn" id="sndBtn">SOUND ON</button>
+    <button class="btn" id="topBtn">TOP UP</button>
+  </div>
+  <p class="foot">18+ · virtual play-money only · no cash value. <span id="rtpFoot"></span></p>
+</div>
+
+<div class="sheet" id="rules" hidden><div class="box">
+  <h3 id="rTitle">Rules</h3>
+  <div id="rBody"></div>
+  <h4>Game maths</h4>
+  <table class="stats" id="rStats"></table>
+  <div class="row"><button class="btn gold" id="simBtn">TEST 100,000 SPINS</button></div>
+  <p id="simOut" class="num" style="min-height:22px"></p>
+  <div class="row"><button class="btn" id="rClose">BACK TO THE GAME</button></div>
+</div></div>
+
+<div class="sheet gate" id="gate" hidden><div class="box">
+  <h3>Are you 18 or older?</h3>
+  <p>SpinRush uses virtual play-money credits only. No deposits, cash prizes or withdrawals. You must be 18 or older to play.</p>
+  <div class="row"><button class="btn gold" id="gateYes">I AM 18 OR OLDER</button><button class="btn" id="gateNo">I AM UNDER 18</button></div>
+  <p id="gateMsg" style="min-height:20px;color:var(--muted)"></p>
+</div></div>
+
+<script>/*ENGINE*/</script>
+<script>const SITE=/*DATA*/;</script>
+<script>/*APP*/</script>

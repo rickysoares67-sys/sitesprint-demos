@@ -1,0 +1,985 @@
+<title>SpinRush</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Playfair+Display:wght@700;800;900&display=swap">
+<style>
+/* Layout: SpinRush signature collection. Lobby = brand bar, hero world, search + family chips, poster grid.
+   Game = world-lit stage with canvas reels, meters, betting deck (lines × bet per line), rules sheet.
+   One deliberate dark look in the site's own palette: night ink, purple velvet, gold. */
+:root{
+  --ink:#090b1d; --ink2:#100c26; --velvet:#1c1238; --panel:#171131; --line:rgba(237,204,137,.24);
+  --gold:#edcc89; --gold2:#c79a3e; --gold3:#fff1c9; --txt:#f4eeff; --muted:#9994b4; --win:#86f7b5; --loss:#ff7b8a;
+  --f-disp:"Playfair Display",Georgia,"Times New Roman",serif; --f-body:Inter,system-ui,-apple-system,"Segoe UI",sans-serif;
+  color-scheme:dark;
+}
+*,*::before,*::after{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;background:radial-gradient(1100px 620px at 50% -12%,#3b1d63 0%,transparent 62%),linear-gradient(180deg,#120b2a,var(--ink) 40%);
+  color:var(--txt);font:15px/1.5 var(--f-body);-webkit-font-smoothing:antialiased;
+  padding-left:max(14px,env(safe-area-inset-left,0px));padding-right:max(14px,env(safe-area-inset-right,0px));padding-block:10px 40px;overflow-x:hidden}
+button{font:inherit;color:inherit;cursor:pointer;-webkit-tap-highlight-color:transparent}
+button:focus-visible,input:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+button:disabled{opacity:.42;cursor:not-allowed}
+.wrap{max-width:1040px;margin:0 auto}
+.num{font-variant-numeric:tabular-nums}
+
+/* ---- top bar ---- */
+.top{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:4px 2px 12px}
+.brand{height:46px;width:auto;display:block;max-width:56vw}
+.bal{border:1px solid var(--gold2);border-radius:12px;padding:5px 12px;text-align:right;background:linear-gradient(180deg,#24173f,#120c26);box-shadow:inset 0 1px 0 rgba(255,241,201,.12)}
+.bal small{display:block;font-size:9.5px;letter-spacing:.16em;color:var(--muted);text-transform:uppercase}
+.bal b{font-family:var(--f-disp);font-size:clamp(16px,4.4vw,21px);color:var(--gold3);letter-spacing:.01em}
+
+/* ---- hero ---- */
+.hero{position:relative;border-radius:18px;overflow:hidden;border:1px solid var(--line);min-height:300px;display:flex;align-items:flex-end;background:#160d2c}
+.hero .art{position:absolute;inset:0}
+.hero .art svg{width:100%;height:100%;display:block}
+.hero::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(9,11,29,.15) 0%,rgba(9,11,29,.35) 30%,rgba(9,11,29,.8) 62%,rgba(9,11,29,.95))}
+.hero .in{position:relative;z-index:1;padding:18px;width:100%}
+.eyebrow{font-size:10.5px;letter-spacing:.2em;text-transform:uppercase;color:#e6c8ff;text-shadow:0 1px 6px #000}
+.hero h1{font-family:var(--f-disp);font-size:clamp(30px,8vw,46px);line-height:1.04;margin:4px 0 6px;color:var(--gold3);text-wrap:balance}
+.hero p{margin:0 0 12px;color:#e2dbf5;max-width:46ch}
+.cta{display:inline-flex;align-items:center;gap:8px;border:0;border-radius:12px;padding:12px 18px;font-weight:800;letter-spacing:.04em;font-size:13px;color:#2b1702;
+  background:linear-gradient(180deg,#ffe6a8,#e1ad4f 55%,#b07a24);box-shadow:0 6px 18px rgba(225,173,79,.28)}
+.pills{display:flex;gap:6px;flex-wrap:wrap;margin-top:12px}
+.pill{border:1px solid rgba(237,204,137,.35);background:rgba(16,12,38,.6);border-radius:999px;padding:6px 12px;font-size:12px;color:#e9e2ff}
+.pill.on{background:var(--gold);color:#2b1702;border-color:transparent;font-weight:700}
+
+/* ---- collection ---- */
+.coll h2{font-family:var(--f-disp);font-size:clamp(24px,5.6vw,30px);color:var(--gold);margin:26px 0 2px}
+.coll .sub{color:var(--muted);font-size:13px;margin:0 0 12px}
+.search{width:100%;background:#120d28;border:1px solid var(--line);border-radius:12px;padding:12px 14px;color:var(--txt);font:inherit}
+.chips{display:flex;gap:8px;overflow-x:auto;padding:12px 2px 6px;scrollbar-width:none}
+.chips::-webkit-scrollbar{display:none}
+.chip{flex:none;border:1px solid rgba(237,204,137,.32);background:#160f30;border-radius:999px;padding:8px 13px;font-size:12.5px;white-space:nowrap;color:#e9e2ff}
+.chip b{color:var(--gold);font-weight:700;margin-left:5px}
+.chip.on{background:linear-gradient(180deg,#3d2a12,#2a1c0b);border-color:var(--gold);color:var(--gold3)}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(158px,1fr));gap:12px;margin-top:8px}
+.card{position:relative;border:1px solid var(--line);border-radius:14px;overflow:hidden;background:#140e2c;text-align:left;padding:0;display:flex;flex-direction:column;min-width:0}
+.card img{width:100%;aspect-ratio:4/3;object-fit:cover;display:block;background:#1d1438}
+.card .meta{padding:9px 10px 11px}
+.card .nm,.card .fm{display:block}
+.card .nm{font-weight:700;font-size:14px;line-height:1.25;color:var(--txt)}
+.card .fm{font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-top:2px}
+.card .rt{position:absolute;top:8px;right:8px;font-size:10.5px;font-weight:700;background:rgba(9,11,29,.78);border:1px solid var(--line);border-radius:999px;padding:3px 8px;color:var(--gold3)}
+.empty{color:var(--muted);padding:30px 0;text-align:center}
+.foot{color:var(--muted);font-size:12px;text-align:center;margin:30px auto 0;max-width:60ch;line-height:1.6}
+
+/* ---- game ---- */
+.game{max-width:640px;margin:0 auto}
+.ghead{display:flex;align-items:center;gap:10px;padding:2px 0 10px}
+.back{width:40px;height:40px;border-radius:12px;border:1px solid var(--line);background:#160f30;font-size:22px;line-height:1;flex:none}
+.gt{flex:1;min-width:0}
+.gt b{display:block;font-family:var(--f-disp);font-size:clamp(19px,5vw,24px);color:var(--gold3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.15}
+.gt small{font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+.gbal{flex:none}
+.jps{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:8px}
+.jp{border:1px solid var(--line);border-radius:10px;padding:5px 4px;text-align:center;background:linear-gradient(180deg,#1e1540,#110b26);min-width:0}
+.jp small{display:block;font-size:9px;letter-spacing:.14em;font-weight:800}
+.jp b{display:block;font-size:clamp(11px,3.2vw,14px);color:var(--gold3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.jp:nth-child(1) small{color:#ff7d94}.jp:nth-child(2) small{color:#ffab5c}.jp:nth-child(3) small{color:#6fd6ff}.jp:nth-child(4) small{color:#8cf5a8}
+.jp.hit{animation:jph .26s 12 alternate}@keyframes jph{to{background:#5a2a00;border-color:#fff}}
+.stage{position:relative;border-radius:18px;padding:7px;background:linear-gradient(145deg,#fff0b8,#b8862f 22%,#3a2408 48%,#e0b44f 76%,#fff3c4)}
+.world{position:absolute;inset:7px;border-radius:12px;overflow:hidden}
+.world svg{width:100%;height:100%;display:block;filter:saturate(1.05) brightness(.62)}
+.window{position:relative;border-radius:12px;overflow:hidden;aspect-ratio:5/3.12;max-width:100%}
+#reels,#fx{position:absolute;inset:0;width:100%;height:100%;display:block}
+#fx{pointer-events:none}
+.band{position:absolute;left:0;right:0;top:0;z-index:4;text-align:center;font-size:12px;font-weight:800;letter-spacing:.12em;padding:5px 8px;
+  background:linear-gradient(90deg,transparent,rgba(120,40,190,.92),transparent);color:#fff;text-shadow:0 1px 2px #000}
+.band.hold{background:linear-gradient(90deg,transparent,rgba(190,120,10,.95),transparent)}
+.meters{display:grid;grid-template-columns:1.25fr 1fr 1.1fr;gap:6px;margin-top:10px}
+.meter{border:1px solid var(--line);border-radius:12px;padding:6px 8px;text-align:center;background:#130d2b;min-width:0}
+.meter small{display:block;font-size:9.5px;letter-spacing:.16em;color:var(--muted);text-transform:uppercase}
+.meter b{display:block;font-size:clamp(14px,4.2vw,18px);font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#winM b{color:var(--win)}
+.msg{min-height:22px;text-align:center;color:var(--gold);font-size:14px;padding:8px 6px 2px}
+.deck{display:grid;grid-template-columns:1fr auto 1fr;gap:10px;align-items:center;margin-top:8px}
+.side{display:flex;flex-direction:column;gap:6px;min-width:0}
+.stepper{display:flex;align-items:center;justify-content:space-between;gap:4px;border:1px solid var(--line);border-radius:12px;padding:4px;background:#130d2b}
+.stepper button{width:34px;height:34px;border-radius:10px;border:1px solid rgba(237,204,137,.35);background:linear-gradient(180deg,#2c1f4d,#170f31);font-size:19px;color:var(--gold);flex:none}
+.stepper div{text-align:center;line-height:1.05;min-width:0}
+.stepper small{display:block;font-size:9px;letter-spacing:.14em;color:var(--muted);text-transform:uppercase;white-space:nowrap}
+.stepper b{font-size:14px;font-weight:800;white-space:nowrap}
+.spin{width:98px;height:98px;border-radius:50%;border:3px solid #fff3c9;font-weight:900;font-size:17px;letter-spacing:.08em;color:#2b1702;
+  background:radial-gradient(circle at 50% 30%,#fff7d8,#f1c766 42%,#c2862b 76%,#6f4410);box-shadow:0 7px 0 #5c370c,0 12px 28px rgba(0,0,0,.6),0 0 26px rgba(241,199,102,.45);transition:transform .08s,box-shadow .08s}
+.spin:active{transform:translateY(5px);box-shadow:0 2px 0 #5c370c,0 6px 16px rgba(0,0,0,.6)}
+.spin.stop{background:radial-gradient(circle at 50% 30%,#ffd6e2,#ff5b86 45%,#a8133f 82%);color:#fff}
+.btn{height:36px;border-radius:11px;border:1px solid rgba(237,204,137,.32);background:#170f31;font-size:11.5px;font-weight:700;letter-spacing:.08em;white-space:nowrap;padding:0 8px}
+.btn.on{background:linear-gradient(180deg,#8a49e0,#5a22b0);border-color:transparent}
+.btn.gold{background:linear-gradient(180deg,#ffe6a8,#d39f45);color:#2b1702;border-color:transparent}
+.btn.green{background:linear-gradient(180deg,#9ff5b9,#2fa45c);color:#06230f;border-color:transparent;animation:gpulse 1.1s infinite}
+@keyframes gpulse{50%{box-shadow:0 0 16px rgba(134,247,181,.8)}}
+.util{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:10px}
+.betline{text-align:center;font-size:12px;color:var(--muted);margin-top:8px}
+.betline b{color:var(--gold3)}
+
+/* ---- overlays & sheets ---- */
+.ov{position:absolute;inset:0;z-index:20;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:16px;
+  background:radial-gradient(circle,rgba(28,10,48,.55),rgba(6,4,16,.9));border-radius:12px}
+.ov h2{margin:0;font-family:var(--f-disp);font-size:clamp(28px,8.5vw,52px);line-height:1;background:linear-gradient(180deg,#fffbe6,#f3cf6f 48%,#c27a1e);
+  -webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 3px 0 #3a1c00);animation:pop .45s cubic-bezier(.2,1.6,.4,1)}
+.ov h2.mega{background-image:linear-gradient(180deg,#fff,#ffb3d0 40%,#e2387a)}
+.ov h2.epic{background-image:linear-gradient(180deg,#fff,#b9f3ff 40%,#3ab9e6)}
+.ov .amt{font-size:clamp(24px,7vw,40px);font-weight:900;margin-top:8px;text-shadow:0 0 16px rgba(255,255,255,.5)}
+.ov p{max-width:34ch;margin:8px 0 0;color:#efe8ff}
+.ov .go{margin-top:14px;border:0;border-radius:999px;padding:11px 24px;font-weight:900;letter-spacing:.06em;color:#2b1702;background:linear-gradient(180deg,#fff0bf,#e9b44e)}
+.ov .row{display:flex;gap:10px;justify-content:center;margin-top:12px}
+.ov .red{background:linear-gradient(180deg,#ff8aa0,#c0122f);color:#fff}
+.ov .black{background:linear-gradient(180deg,#4b5266,#0b0e16);color:#fff;border:1px solid #5d6680}
+.card2{width:92px;height:128px;margin:12px auto 0;border-radius:12px;border:2px solid var(--gold);display:grid;place-items:center;font-size:52px;color:#fff;background:linear-gradient(160deg,#2a3348,#0f1422)}
+.card2.r{background:linear-gradient(160deg,#ff5370,#8c0d24)}.card2.b{background:linear-gradient(160deg,#30384b,#06080e)}
+@keyframes pop{from{transform:scale(.25);opacity:0}}
+.sheet{position:fixed;inset:0;z-index:50;background:rgba(5,4,14,.86);display:flex;justify-content:center;align-items:flex-start;overflow:auto;
+  padding:20px max(14px,env(safe-area-inset-right,0px)) 40px max(14px,env(safe-area-inset-left,0px))}
+.sheet .box{width:100%;max-width:620px;background:linear-gradient(180deg,#1b1238,#0e0a22);border:1px solid var(--line);border-radius:18px;padding:18px}
+.sheet h3{font-family:var(--f-disp);color:var(--gold);font-size:22px;margin:0 0 4px}
+.sheet h4{font-size:11.5px;letter-spacing:.16em;text-transform:uppercase;color:#d7a6ff;margin:18px 0 8px}
+.sheet p{color:#e6e0f7;margin:6px 0}
+.pays{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:8px}
+.pay{display:flex;gap:8px;align-items:center;border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:6px;background:#100b25;min-width:0}
+.pay canvas{width:52px;height:52px;flex:none}
+.pay div{font-size:12.5px;line-height:1.35;min-width:0}
+.pay div b{display:block;color:var(--gold3);font-size:12.5px}
+.stats{width:100%;border-collapse:collapse;font-size:14px}
+.stats td{padding:7px 4px;border-bottom:1px solid rgba(255,255,255,.08)}
+.stats td:last-child{text-align:right;color:var(--gold3);font-weight:700}
+.lines{display:grid;grid-template-columns:repeat(auto-fill,minmax(56px,1fr));gap:6px}
+.lines canvas{width:100%;height:auto;border-radius:6px}
+.sheet .row{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.sheet .row .btn{flex:1;min-width:150px;height:40px}
+.gate .box{max-width:420px;text-align:center;margin-top:12vh}
+@media (min-width:860px){.hero{min-height:380px}.hero .in{padding:28px}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+
+<div class="wrap" id="lobby">
+  <div class="top">
+    <img class="brand" src="static/assets/art49/brand.svg" alt="SpinRush">
+    <div class="bal"><small>Virtual balance · ZAR</small><b class="num" id="lobBal">R 25 000,00</b></div>
+  </div>
+  <section class="hero" id="hero" aria-label="Featured game">
+    <div class="art" id="heroArt"></div>
+    <div class="in">
+      <div class="eyebrow">The SpinRush signature collection</div>
+      <h1 id="heroTitle">Diamond Fire</h1>
+      <p id="heroText"></p>
+      <button class="cta" id="heroPlay">PLAY ↗</button>
+      <div class="pills" id="heroPills"></div>
+    </div>
+  </section>
+  <section class="coll">
+    <h2>The signature collection</h2>
+    <p class="sub" id="collSub">40 games · find your next world.</p>
+    <input class="search" id="q" type="search" placeholder="Find your game" aria-label="Find your game">
+    <div class="chips" id="chips" role="tablist" aria-label="Game styles"></div>
+    <div class="grid" id="grid"></div>
+    <p class="empty" id="empty" hidden>No game matches that search.</p>
+  </section>
+  <p class="foot">18+ · SpinRush uses virtual play-money credits only. No deposits, cash prizes or withdrawals. Every game pays back about 84% on average, checked with millions of simulated spins.</p>
+</div>
+
+<div class="game" id="gameView" hidden>
+  <div class="ghead">
+    <button class="back" id="back" aria-label="Back to the collection">‹</button>
+    <div class="gt"><b id="gName">Game</b><small id="gFam">family</small></div>
+    <div class="bal gbal"><small>Balance</small><b class="num" id="gBal">R 0,00</b></div>
+  </div>
+  <div class="jps" id="jps" hidden></div>
+  <div class="stage">
+    <div class="world" id="world"></div>
+    <div class="window" id="win">
+      <canvas id="reels" aria-label="Slot reels"></canvas>
+      <canvas id="fx"></canvas>
+      <div class="band" id="band" hidden></div>
+      <div class="ov" id="ov" hidden></div>
+    </div>
+  </div>
+  <div class="meters">
+    <div class="meter"><small>Balance</small><b class="num" id="balM">R 0,00</b></div>
+    <div class="meter"><small>Total bet</small><b class="num" id="betM">R 0,00</b></div>
+    <div class="meter" id="winM"><small>Win</small><b class="num">R 0,00</b></div>
+  </div>
+  <div class="msg" id="msg" aria-live="polite">Choose your lines and bet, then spin.</div>
+  <div class="deck">
+    <div class="side">
+      <div class="stepper"><button id="linDn" aria-label="Fewer lines">−</button><div><small>Lines</small><b class="num" id="linV">10</b></div><button id="linUp" aria-label="More lines">+</button></div>
+      <div class="stepper"><button id="lbDn" aria-label="Lower bet per line">−</button><div><small>Bet / line</small><b class="num" id="lbV">R 0,10</b></div><button id="lbUp" aria-label="Raise bet per line">+</button></div>
+    </div>
+    <button class="spin" id="spinBtn">SPIN</button>
+    <div class="side">
+      <button class="btn gold" id="maxBtn">MAX BET</button>
+      <button class="btn" id="autoBtn">AUTO</button>
+      <button class="btn" id="turboBtn">TURBO</button>
+    </div>
+  </div>
+  <div class="betline" id="betline"></div>
+  <div class="util">
+    <button class="btn" id="rulesBtn">RULES</button>
+    <button class="btn" id="gambleBtn" disabled>GAMBLE</button>
+    <button class="btn" id="sndBtn">SOUND ON</button>
+    <button class="btn" id="topBtn">TOP UP</button>
+  </div>
+  <p class="foot">18+ · virtual play-money only · no cash value. <span id="rtpFoot"></span></p>
+</div>
+
+<div class="sheet" id="rules" hidden><div class="box">
+  <h3 id="rTitle">Rules</h3>
+  <div id="rBody"></div>
+  <h4>Game maths</h4>
+  <table class="stats" id="rStats"></table>
+  <div class="row"><button class="btn gold" id="simBtn">TEST 100,000 SPINS</button></div>
+  <p id="simOut" class="num" style="min-height:22px"></p>
+  <div class="row"><button class="btn" id="rClose">BACK TO THE GAME</button></div>
+</div></div>
+
+<div class="sheet gate" id="gate" hidden><div class="box">
+  <h3>Are you 18 or older?</h3>
+  <p>SpinRush uses virtual play-money credits only. No deposits, cash prizes or withdrawals. You must be 18 or older to play.</p>
+  <div class="row"><button class="btn gold" id="gateYes">I AM 18 OR OLDER</button><button class="btn" id="gateNo">I AM UNDER 18</button></div>
+  <p id="gateMsg" style="min-height:20px;color:var(--muted)"></p>
+</div></div>
+
+<script>/* SpinRush engine v2 — original game maths for 7 families.
+   One file shared by the page and the Node simulator, so the tested maths is the played maths.
+   Symbols: 0..7 game symbols (s00..s07), 8..10 common royals (J,10,9), 18 WILD, 19 SCATTER/BOOK, 20 COIN. */
+(function (root) {
+  'use strict';
+  var WILD = 18, SCAT = 19, COIN = 20;
+  var LINES = [[1,1,1,1,1],[0,0,0,0,0],[2,2,2,2,2],[0,1,2,1,0],[2,1,0,1,2],[0,0,1,0,0],[2,2,1,2,2],[1,2,2,2,1],[1,0,0,0,1],[1,0,1,0,1],
+    [1,2,1,2,1],[0,1,0,1,0],[2,1,2,1,2],[1,1,0,1,1],[1,1,2,1,1],[0,1,1,1,0],[2,1,1,1,2],[0,2,0,2,0],[2,0,2,0,2],[0,0,2,0,0],
+    [2,2,0,2,2],[0,2,2,2,0],[2,0,0,0,2],[1,0,2,0,1],[1,2,0,2,1]];
+
+  /* ------------------------------------------------------------ family templates (original designs) */
+  // pays: [x2, x3, x4, x5] per symbol, in line-bet units, before the game's tuning factor k.
+  var PAY11 = {
+    medium: [[5,40,200,1000],[2,30,120,500],[0,20,80,300],[0,20,80,300],[0,15,50,150],[0,10,30,100],[0,8,25,90],[0,6,20,80],[0,5,15,60],[0,5,12,50],[0,4,10,40]],
+    high:   [[10,80,400,2500],[5,50,250,1000],[0,30,120,500],[0,25,100,400],[0,15,60,200],[0,8,25,90],[0,6,20,75],[0,5,15,60],[0,4,10,40],[0,3,8,30],[0,3,6,25]],
+    low:    [[2,25,100,400],[0,20,70,250],[0,15,50,180],[0,15,45,160],[0,12,35,110],[0,10,28,90],[0,8,24,80],[0,7,20,70],[0,6,16,60],[0,6,14,50],[0,5,12,45]]
+  };
+  var CNT11 = {  // symbol counts per reel (s00..s10), before per-game jitter
+    medium: [2,3,3,4,5,6,7,7,8,8,9], high: [1,2,3,3,4,6,7,8,9,9,10], low: [3,3,4,4,5,6,6,7,7,8,8]
+  };
+  var PAY8 = {   // classic: s00..s07, [x2,x3,x4,x5]
+    medium: [[0,50,200,1000],[0,20,80,400],[0,15,50,200],[0,10,40,150],[0,8,25,100],[0,5,15,60],[0,5,15,60],[1,4,10,40]],
+    high:   [[0,100,500,3000],[0,40,150,600],[0,20,80,300],[0,12,50,180],[0,8,30,100],[0,5,15,50],[0,4,12,45],[1,4,10,35]],
+    low:    [[0,30,120,500],[0,20,60,250],[0,15,45,160],[0,12,35,120],[0,10,25,90],[0,8,20,70],[0,7,18,60],[1,6,15,50]]
+  };
+  var CNT8 = { medium: [2,3,4,5,6,7,8,8], high: [1,2,4,5,6,8,9,9], low: [3,4,4,5,6,7,7,8] };
+
+  var FAMILY = {
+    classic: { label: 'Classic 5 Lines', maxLines: 5, nsym: 8, wildReels: [], scat: 2, scatPay: { 3: 2, 4: 10, 5: 50 },
+      blurb: 'Five fixed-style lines, no wilds, pure symbol pays. Stars pay anywhere.' },
+    book:    { label: 'Book Expansion', maxLines: 10, nsym: 11, wildReels: [], scat: 2, scatPay: { 3: 2, 4: 20, 5: 200 }, bookWild: true, fs: 10, retrig: 10,
+      blurb: 'The book is wild and scatter. 3 books give 10 free spins with a special symbol that expands to fill its reels and pays on every line.' },
+    pearl:   { label: 'Triple Free Spins', maxLines: 20, nsym: 11, wildReels: [1,2,3], wildN: 2, scat: 2, scatPay: { 3: 2, 4: 10, 5: 50 }, wildDouble: true, fs: 15, fsMult: 3, retrig: 15,
+      blurb: 'Wilds on reels 2 to 4 double any win they complete. 3 scatters give 15 free spins where every win pays triple.' },
+    fruit:   { label: 'Win-to-Spin', maxLines: 15, nsym: 11, wildReels: [1,2,3], wildN: 2, scat: 0, fsMult: 2, chainCap: 50,
+      blurb: 'Line wins with the top four symbols award free spins: 3 in a row = 1, 4 = 3, 5 = 6. Free-spin wins pay double and can win more spins.' },
+    lock:    { label: 'Hold & Spin', maxLines: 20, nsym: 11, wildReels: [1,2,3], wildN: 2, scat: 0, coins: 8, trigger: 6, respins: 3,
+      coinV: [1,2,3,5,10,20,50,200], coinW: [380,250,150,100,60,35,20,5], grand: 1000, respinP: 0.075,
+      blurb: '6 or more coins start Hold & Spin. Coins lock, every new coin resets 3 respins, and filling all 15 spots adds the GRAND.' },
+    sticky:  { label: 'Sticky Wild Free Spins', maxLines: 20, nsym: 11, wildReels: [1,2,3], wildN: 2, scat: 2, scatPay: { 3: 2, 4: 10, 5: 50 }, fs: 10, retrig: 5, stickyFs: true,
+      blurb: '3 scatters give 10 free spins. Every wild that lands in the free spins stays locked in place until the bonus ends.' },
+    respin:  { label: 'Expanding Wild Respins', maxLines: 10, nsym: 11, wildReels: [1,2,3], wildN: 1, scat: 0, expandRespin: true,
+      blurb: 'A wild on reels 2 to 4 expands to fill the reel, locks, and gives a free respin. Every new wild gives another respin.' }
+  };
+
+  /* ------------------------------------------------------------ deterministic helpers for building games */
+  function seedOf(str) { var h = 2166136261; for (var i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = Math.imul(h, 16777619); } return h >>> 0; }
+  function mulberry(a) { return function () { a |= 0; a = a + 0x6D2B79F5 | 0; var t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+
+  function buildStrip(counts, extra, r, clumps) {
+    // counts: per paying symbol; extra: [[code, n], ...] spaced apart (wild/scatter); clumps: shuffled in freely (coins can stack)
+    var s = [], i, j;
+    for (i = 0; i < counts.length; i++) for (j = 0; j < counts[i]; j++) s.push(i);
+    (clumps || []).forEach(function (e) { for (var q = 0; q < e[1]; q++) s.push(e[0]); });
+    for (i = s.length - 1; i > 0; i--) { j = Math.floor(r() * (i + 1)); var t = s[i]; s[i] = s[j]; s[j] = t; }
+    // insert specials at evenly spread positions with a little jitter so two never sit within 2 stops
+    var total = s.length + extra.reduce(function (a, e) { return a + e[1]; }, 0), specials = [];
+    extra.forEach(function (e) { for (var k = 0; k < e[1]; k++) specials.push(e[0]); });
+    for (i = specials.length - 1; i > 0; i--) { j = Math.floor(r() * (i + 1)); var u = specials[i]; specials[i] = specials[j]; specials[j] = u; }
+    var out = [], gap = total / Math.max(1, specials.length), next = Math.floor(r() * gap), si = 0, pi = 0;
+    for (var pos = 0; pos < total; pos++) {
+      if (si < specials.length && pos >= next) { out.push(specials[si++]); next = Math.floor((si + 0.15 + r() * 0.7) * gap); }
+      else out.push(s[pi++]);
+    }
+    return out;
+  }
+
+  /* Build a playable game from a catalogue entry (art and identity stay the user's). */
+  function makeGame(entry) {
+    var fam = FAMILY[entry.family], vol = entry.volatility in PAY11 ? entry.volatility : 'medium';
+    var r = mulberry(seedOf(entry.id + '|v2'));
+    var base = fam.nsym === 8 ? CNT8[vol] : CNT11[vol];
+    var pays = (fam.nsym === 8 ? PAY8[vol] : PAY11[vol]).map(function (p) { return p.slice(); });
+    // per-game variety: nudge counts and pays so no two games in a family are identical
+    var strips = [];
+    for (var c = 0; c < 5; c++) {
+      var counts = base.map(function (n, i) { var d = Math.floor(r() * 3) - 1; return Math.max(i < 2 ? 1 : 2, n + d); });
+      var extra = [];
+      if (fam.wildReels.indexOf(c) >= 0) extra.push([WILD, fam.wildN + (r() < 0.3 ? 1 : 0)]);
+      if (fam.scat) extra.push([SCAT, fam.scat]);
+      var clumps = fam.coins ? [[COIN, fam.coins + (c === 2 ? 1 : 0)]] : [];
+      strips.push(buildStrip(counts, extra, r, clumps));
+    }
+    pays = pays.map(function (p) { var f = 0.9 + r() * 0.2; return p.map(function (v) { return Math.round(v * f); }); });
+    return {
+      id: entry.id, name: entry.name, family: entry.family, vol: vol, fam: fam,
+      maxLines: fam.maxLines, strips: strips, pays: pays, k: entry.k || 1,
+      specialW: [1, 1, 2, 2, 3, 3, 3, 4, 4, 4, 4]
+    };
+  }
+
+  /* ------------------------------------------------------------ spin primitives */
+  function drawGrid(G, rng) {
+    var g = [[], [], []], stops = [];
+    for (var c = 0; c < 5; c++) { var s = G.strips[c], st = rng(s.length); stops.push(st); for (var r = 0; r < 3; r++) g[r][c] = s[(st + r) % s.length]; }
+    return { grid: g, stops: stops };
+  }
+  function isWild(G, v) { return v === WILD || (G.fam.bookWild && v === SCAT); }
+
+  function lineWins(G, grid, L, lb, cells, out) {
+    var tot = 0;
+    for (var li = 0; li < L; li++) {
+      var ln = LINES[li], s0 = -1, k;
+      for (k = 0; k < 5; k++) { var v = grid[ln[k]][k]; if (!isWild(G, v)) { s0 = v; break; } }
+      if (s0 < 0 || s0 > 10) continue;
+      var n = 0, wild = false;
+      for (k = 0; k < 5; k++) { var x = grid[ln[k]][k]; if (x === s0) n++; else if (isWild(G, x)) { n++; wild = true; } else break; }
+      if (n < 2) continue;
+      var p = G.pays[s0][n - 2]; if (!p) continue;
+      var amt = p * lb * (G.fam.wildDouble && wild ? 2 : 1);
+      tot += amt;
+      if (out) out.push({ line: li, sym: s0, n: n, amt: amt, path: ln, wild: wild,
+        cells: cells ? ln.slice(0, n).map(function (row, cc) { return [row, cc]; }) : null });
+    }
+    return tot;
+  }
+  function countSym(grid, code, cells) { var n = 0; for (var r = 0; r < 3; r++) for (var c = 0; c < 5; c++) if (grid[r][c] === code) { n++; if (cells) cells.push([r, c]); } return n; }
+
+  /* One evaluated spin: line wins + scatter pays. mult applies to everything. */
+  function evalSpin(G, grid, L, lb, mult, ui) {
+    var wins = ui ? [] : null, tot = lineWins(G, grid, L, lb, ui, wins), TB = L * lb;
+    var sc = 0, scCells = ui ? [] : null;
+    if (G.fam.scat) {
+      sc = countSym(grid, SCAT, scCells);
+      var sp = G.fam.scatPay[Math.min(5, sc)] || 0;
+      if (sp) { tot += sp * TB; if (ui) wins.push({ scatter: true, n: sc, amt: sp * TB, cells: scCells }); }
+    }
+    if (ui && mult !== 1) wins.forEach(function (w) { w.amt *= mult; });
+    return { amt: tot * mult, wins: wins, sc: sc };
+  }
+
+  /* ------------------------------------------------------------ a full round (base spin + any feature) */
+  // Returns raw units (before k); the caller multiplies by G.k. ui=true also returns presentation steps.
+  function round(G, L, lb, rng, ui) {
+    var f = G.fam, TB = L * lb, steps = ui ? [] : null, total = 0;
+    var d = drawGrid(G, rng), grid = d.grid;
+
+    if (f.expandRespin) {               // ---------- RESPIN: expanding, locking wilds
+      var held = [false, false, false, false, false], spinN = 0, cur = grid, curStops = d.stops;
+      while (true) {
+        var newWild = false;
+        for (var c = 1; c <= 3; c++) if (!held[c]) { for (var r = 0; r < 3; r++) if (cur[r][c] === WILD) { held[c] = true; newWild = true; break; } }
+        var shown = cur.map(function (row) { return row.slice(); });
+        for (var c2 = 0; c2 < 5; c2++) if (held[c2]) for (var r2 = 0; r2 < 3; r2++) shown[r2][c2] = WILD;
+        var ev = evalSpin(G, shown, L, lb, 1, ui);
+        total += ev.amt;
+        if (ui) steps.push({ kind: spinN ? 'respin' : 'base', grid: shown, raw: cur, stops: curStops, wins: ev.wins, amt: ev.amt, held: held.slice() });
+        if (!newWild || spinN >= 3) break;
+        spinN++;
+        var nd = drawGrid(G, rng); cur = nd.grid; curStops = nd.stops;
+        for (var c3 = 0; c3 < 5; c3++) if (held[c3]) for (var r3 = 0; r3 < 3; r3++) cur[r3][c3] = WILD;
+      }
+      return { units: total, steps: steps, feature: spinN ? 'respin' : null, spins: spinN };
+    }
+
+    var ev0 = evalSpin(G, grid, L, lb, 1, ui);
+    total += ev0.amt;
+    var coinVals = null;
+    if (f.coins) {                       // coins carry values (x total bet) from the moment they land
+      coinVals = [];
+      for (var rr = 0; rr < 3; rr++) for (var cc = 0; cc < 5; cc++) if (grid[rr][cc] === COIN) coinVals.push([rr, cc, pickW(f.coinV, f.coinW, rng)]);
+    }
+    if (ui) steps.push({ kind: 'base', grid: grid, stops: d.stops, wins: ev0.wins, amt: ev0.amt, coins: coinVals });
+
+    // ---------- HOLD & SPIN
+    if (f.coins && coinVals.length >= f.trigger) {
+      var locked = {}, count = 0, sum = 0;
+      coinVals.forEach(function (p) { locked[p[0] * 5 + p[1]] = p[2]; count++; sum += p[2]; });
+      var left = f.respins, hsteps = ui ? [] : null;
+      while (left > 0 && count < 15) {
+        var landed = [];
+        for (var cell = 0; cell < 15; cell++) if (locked[cell] === undefined && rng(1000000) < f.respinP * 1000000) {
+          var v = pickW(f.coinV, f.coinW, rng); locked[cell] = v; count++; sum += v; landed.push([cell, v]);
+        }
+        if (landed.length) left = f.respins; else left--;
+        if (ui) hsteps.push({ landed: landed, left: left, count: count });
+      }
+      var grand = count >= 15 ? f.grand : 0, hw = (sum + grand) * TB;
+      total += hw;
+      if (ui) steps.push({ kind: 'hold', start: coinVals, respins: hsteps, locked: locked, grand: grand, amt: hw, count: count });
+      return { units: total, steps: steps, feature: 'hold', coins: count };
+    }
+
+    // ---------- FREE SPINS families
+    var fs = 0, mult = 1;
+    if (f.fs && ev0.sc >= 3) { fs = f.fs; mult = f.fsMult || 1; }
+    if (f.chainCap) {                    // fruit: premium line wins award spins
+      fs = fruitAward(ev0.wins, G, grid, L);
+      mult = f.fsMult;
+    }
+    if (!fs) return { units: total, steps: steps, feature: null };
+
+    var special = -1, sticky = {}, played = 0, featureWin = 0, maxSpins = f.chainCap || 200;
+    if (f.bookWild) special = pickW([0,1,2,3,4,5,6,7,8,9,10], G.specialW, rng);
+    if (ui) steps.push({ kind: 'fsIntro', spins: fs, special: special, mult: mult });
+    while (fs > 0 && played < maxSpins) {
+      fs--; played++;
+      var dd = drawGrid(G, rng), g2 = dd.grid;
+      if (f.stickyFs) {
+        for (var c4 = 1; c4 <= 3; c4++) for (var r4 = 0; r4 < 3; r4++) if (g2[r4][c4] === WILD) sticky[r4 * 5 + c4] = 1;
+        for (var key in sticky) { var kk = +key; g2[Math.floor(kk / 5)][kk % 5] = WILD; }
+      }
+      var e2 = evalSpin(G, g2, L, lb, mult, ui), stepAmt = e2.amt, exp = null;
+      if (special >= 0) {                // book: special symbol expands over whole reels and pays every line
+        var reels = [];
+        for (var c5 = 0; c5 < 5; c5++) for (var r5 = 0; r5 < 3; r5++) if (g2[r5][c5] === special) { reels.push(c5); break; }
+        var need = special <= 1 ? 2 : 3;
+        if (reels.length >= need) {
+          var p = G.pays[special][reels.length - 2] || 0, ex = p * lb * L * mult;
+          if (ex) { stepAmt += ex; exp = { reels: reels, amt: ex }; if (ui) e2.wins.push({ expand: true, sym: special, n: reels.length, amt: ex, cells: reels.reduce(function (a, cc) { return a.concat([[0, cc], [1, cc], [2, cc]]); }, []) }); }
+        }
+      }
+      featureWin += stepAmt;
+      var add = 0;
+      if (f.fs && e2.sc >= 3) add = f.retrig;
+      if (f.chainCap) add = fruitAward(e2.wins, G, g2, L);
+      if (add && played + fs < maxSpins) fs += add;
+      if (ui) steps.push({ kind: 'free', grid: g2, stops: dd.stops, wins: e2.wins, amt: stepAmt, left: fs, played: played, add: add, sticky: f.stickyFs ? Object.keys(sticky).map(Number) : null, expand: exp, mult: mult });
+    }
+    total += featureWin;
+    if (ui) steps.push({ kind: 'fsEnd', amt: featureWin, played: played });
+    return { units: total, steps: steps, feature: 'free', spins: played };
+  }
+  function fruitAward(wins, G, grid, L) {
+    // needs line results; in sim mode wins is null, so recompute the best premium run per line cheaply
+    var best = 0;
+    for (var li = 0; li < L; li++) {
+      var ln = LINES[li], s0 = -1, k;
+      for (k = 0; k < 5; k++) { var v = grid[ln[k]][k]; if (v !== WILD) { s0 = v; break; } }
+      if (s0 < 0 || s0 > 3) continue;
+      var n = 0; for (k = 0; k < 5; k++) { var x = grid[ln[k]][k]; if (x === s0 || x === WILD) n++; else break; }
+      if (n >= 3 && G.pays[s0][n - 2]) best += n === 3 ? 1 : n === 4 ? 3 : 6;
+    }
+    return best;
+  }
+  function pickW(vals, ws, rng) { var t = 0, i; for (i = 0; i < ws.length; i++) t += ws[i]; var x = rng(t); for (i = 0; i < ws.length; i++) { if (x < ws[i]) return vals[i]; x -= ws[i]; } return vals[0]; }
+
+  /* ------------------------------------------------------------ simulator (Node or browser) */
+  function simulate(G, n, rng, L) {
+    L = L || G.maxLines;
+    var bet = 0, ret = 0, hits = 0, feats = 0, big = 0;
+    for (var i = 0; i < n; i++) {
+      var o = round(G, L, 1, rng, false), w = o.units;
+      bet += L; ret += w; if (w > 0) hits++; if (o.feature) feats++; if (w >= 20 * L) big++;
+    }
+    return { rtpRaw: ret / bet, rtp: ret / bet * G.k, hit: hits / n, feat: feats / n, big: big / n };
+  }
+
+  var API = { WILD: WILD, SCAT: SCAT, COIN: COIN, LINES: LINES, FAMILY: FAMILY, makeGame: makeGame, round: round,
+    simulate: simulate, drawGrid: drawGrid, pickW: pickW, mulberry: mulberry, seedOf: seedOf };
+  if (typeof module !== 'undefined' && module.exports) module.exports = API; else root.SREngine = API;
+})(this);
+</script>
+<script>const SITE={"games":[{"id":"temple","name":"Temple of Titans","family":"book","volatility":"medium","accent":"#f0bd4f","cover":"/static/assets/posters35/temple.webp","names":{"s00":"Zeus","s01":"Thunderbolt","s02":"Sacred Owl","s03":"Sapphire Ring","s04":"Diamond","s05":"Royal A","s06":"Royal K","s07":"Royal Q","s08":"Royal J","s18":"Zeus Wild","s19":"Temple Wild / Scatter"},"k":2.042233,"rtp":0.8362,"rtp1":0.8431,"hit":0.2154,"feat":0.00636,"big":0.00336,"maxLines":10},{"id":"pharaoh_secret","name":"Sands of Amunet","family":"book","volatility":"medium","accent":"#f4c14f","cover":"/static/assets/posters35/pharaoh_secret.webp","names":{"s00":"Golden Ankh","s01":"Ra Disc","s02":"Royal Scarab","s03":"Eye of Horus","s04":"Eclipse Moon","s05":"Tomb Key","s06":"Pharaoh Crown","s07":"Anubis Seal","s18":"Wild","s19":"Book · Wild / Scatter","s08":"Royal J"},"k":1.928077,"rtp":0.8368,"rtp1":0.8474,"hit":0.2164,"feat":0.00685,"big":0.00347,"maxLines":10},{"id":"diamond","name":"Diamond Heist","family":"lock","volatility":"low","accent":"#60caff","cover":"/static/assets/posters35/diamond.webp","names":{"s00":"The Thief","s01":"Blue Diamond","s02":"Vault Door","s03":"Loot Bag","s04":"Laser Grid","s05":"Master Key","s06":"Casino Chip","s07":"Q","s18":"Wild","s19":"Scatter","s08":"Royal J","s09":"Royal Ten","s10":"Royal Nine","s20":"Prize Coin"},"k":2.541669,"rtp":0.843,"rtp1":0.8302,"hit":0.2094,"feat":0.00282,"big":0.00232,"maxLines":20},{"id":"dragon","name":"Dragon Empire","family":"book","volatility":"high","accent":"#ff7c2d","cover":"/static/assets/posters35/dragon.webp","names":{"s00":"Golden Dragon","s01":"Jade Dragon","s02":"Warlord Helm","s03":"Gold Ingot","s04":"Dragon Pearl Fire","s05":"Dragon Claw","s06":"Lantern","s07":"Jade Coin","s18":"Wild","s19":"Book · Wild / Scatter","s08":"Royal J"},"k":2.051558,"rtp":0.8338,"rtp1":0.8435,"hit":0.217,"feat":0.00761,"big":0.00342,"maxLines":10},{"id":"bass","name":"Tidewater Catch","family":"pearl","volatility":"low","accent":"#45d4c8","cover":"/static/assets/posters35/bass.webp","names":{"s00":"Trophy Bass","s01":"Bass Boat","s02":"Rod & Reel","s03":"Crank Lure","s04":"Tackle Box","s05":"Fish Finder","s06":"Landing Net","s07":"Bobber","s18":"Wild","s19":"Scatter","s08":"Royal J","s09":"Royal Ten","s10":"Royal Nine"},"k":1.955565,"rtp":0.8424,"rtp1":0.8435,"hit":0.2615,"feat":0.00756,"big":0.00259,"maxLines":20},{"id":"outlaw","name":"Outlaw Biker","family":"pearl","volatility":"medium","accent":"#ff7a2e","cover":"/static/assets/posters35/outlaw.webp","names":{"s00":"Road Captain","s01":"Motorcycle","s02":"Eagle","s03":"Winged Skull","s04":"Leather Jacket","s05":"Spoked Wheel","s06":"Whiskey","s07":"Chain","s18":"Wild","s19":"Scatter","s08":"Royal J","s09":"Royal Ten","s10":"Royal Nine"},"k":1.804558,"rtp":0.8369,"rtp1":0.8474,"hit":0.3089,"feat":0.00651,"big":0.00266,"maxLines":20},{"id":"safari","name":"Safari Riches","family":"pearl","volatility":"medium","accent":"#e9c15b","cover":"/static/assets/posters35/safari.webp","names":{"s00":"Lion","s01":"Elephant","s02":"Safari Jeep","s03":"Acacia Sunset","s04":"Compass","s05":"Binoculars","s06":"Pith Helmet","s07":"Paw Print","s18":"Wild","s19":"Scatter","s08":"Royal J","s09":"Royal Ten","s10":"Royal Nine"},"k":1.962987,"rtp":0.8366,"rtp1":0.8389,"hit":0.2776,"feat":0.00719,"big":0.00251,"maxLines":20},{"id":"neon_empire","name":"Neon Empire","family":"classic","volatility":"medium","accent":"#00e6ff","cover":"/static/assets/posters35/neon_empire.webp","names":{"s00":"Surge Bolt","s01":"Hypercar","s02":"Neon Diamond","s03":"Skyline Crown","s04":"Vault Key","s05":"Cyber Globe","s06":"Pulse Star","s07":"Credit Chip","s19":"Scatter"},"k":3.242198,"rtp":0.8364,"rtp1":0.8462,"hit":0.2223,"feat":0,"big":0.00032,"maxLines":5},{"id":"volcano_vault","name":"Magma Crown","family":"book","volatility":"high","accent":"#ff5a1f","cover":"/static/assets/posters35/volcano_vault.webp","names":{"s00":"Inferno Flame","s01":"Lava Diamond","s02":"Magma Core","s03":"Vault Lock","s04":"Ember Star","s05":"Heat Surge","s06":"Molten Coin","s07":"Forge Crown","s18":"Wild","s19":"Book · Wild / Scatter","s08":"Royal J"},"k":2.005028,"rtp":0.8392,"rtp1":0.8308,"hit":0.2258,"feat":0.0078,"big":0.0035,"maxLines":10},{"id":"moonlit_magic","name":"Moonlit Magic","family":"sticky","volatility":"medium","accent":"#bf8cff","cover":"/static/assets/posters35/moonlit_magic.webp","names":{"s00":"Silver Moon","s01":"Moon Wand","s02":"Astral Star","s03":"Mystic Eye","s04":"Moon Key","s05":"Amethyst","s06":"Enchanted Heart","s07":"Elixir","s18":"Wild","s19":"Scatter","s08":"Royal J","s09":"Royal Ten","s10":"Royal Nine","s20":"Prize Coin"},"k":2.569922,"rtp":0.846,"rtp1":0.873,"hit":0.2966,"feat":0.00656,"big":0.00181,"maxLines":20},{"id":"fruit","name":"Crown Classics","family":"fruit","volatility":"low","accent":"#ff5b6c","cover":"/static/assets/posters35/fruit.webp","names":{"s00":"Lucky Seven","s01":"Crown","s02":"Diamond","s03":"Bell","s04":"Ruby Heart","s05":"Clover","s06":"Watermelon","s07":"Grapes","s18":"Wild","s19":"Scatter","s08":"Royal J","s09":"Royal Ten"},"k":3.960136,"rtp":0.8417,"rtp1":0.7931,"hit":0.2295,"feat":0.02329,"big":6e-05,"maxLines":15},{"id":"rugby","name":"Super 7 Rugby","family":"classic","volatility":"low","accent":"#68d458","cover":"/static/assets/posters35/rugby.webp","names":{"s00":"Trophy","s01":"Golden Ball","s02":"Lucky Seven","s03":"Posts","s04":"Floodlights","s05":"Jersey","s06":"Match Ball","s07":"Whistle","s19":"Scatter"},"k":2.948136,"rtp":0.8354,"rtp1":0.8416,"hit":0.1822,"feat":0,"big":0.0003,"maxLines":5},{"id":"marilyn","name":"Velvet Star","family":"fruit","volatility":"medium","accent":"#f0b6d5","cover":"/static/assets/posters35/marilyn.webp","names":{"s00":"Velvet Eye","s01":"Manor Key","s02":"Black Diamond","s03":"Blood Moon","s04":"Secret Lock","s05":"Forbidden Book","s06":"Crimson Heart","s07":"Midnight Glass","s18":"Wild","s19":"Scatter","s08":"Royal J","s09":"Royal Ten"},"k":3.81307,"rtp":0.8373,"rtp1":0.8202,"hit":0.2322,"feat":0.01496,"big":0.00013,"maxLines":15},{"id":"arctic_crown","name":"Arctic Crown","family":"pearl","volatility":"low","accent":"#a9efff","cover":"/static/assets/posters35/arctic_crown.webp","names":{"s00":"Royal Frost","s01":"Ice Diamond","s02":"Aurora Star","s03":"Crystal Crown","s04":"Ice Crest","s05":"Polar Moon","s06":"Frost Key","s07":"Blue Gem","s18":"Wild","s19":"Scatter","s08":"Royal J","s09":"Royal Ten","s10":"Royal Nine"},"k":2.303199,"rtp":0.8411,"rtp1":0.8385,"hit":0.2426,"feat":0.00654,"big":0.00186,"maxLines":20},{"id":"pirate_dominion","name":"Corsair’s Cove","family":"lock","volatility":"low","accent":"#d9ad55","cover":"/static/assets/posters35/pirate_dominion.webp","names":{"s00":"Black Sail","s01":"Golden Anchor","s02":"Captain Compass","s03":"Treasure Map","s04":"Chest Key","s05":"Powder Keg","s06":"Pirate Chalice","s07":"Doubloon","s18":"Wild","s19":"Scatter","s08":"Royal J","s09":"Royal Ten","s10":"Royal Nine","s20":"Prize Coin"},"k":2.860487,"rtp":0.8332,"rtp1":0.854,"hit":0.188,"feat":0.00251,"big":0.00205,"maxLines":20},{"id":"samurai_gold","name":"Samurai Gold","family":"pearl","volatility":"medium","accent":"#f2c25d","cover":"/static/assets/posters35/samurai_gold.webp","names":{"s00":"Oath Blade","s01":"Torii Gate","s02":"Clan Crest","s03":"Rising Sun","s04":"War Banner","s05":"Thunder Drum","s06":"Ruby Seal","s07":"Shogun Helm","s18":"Wild","s19":"Scatter","s08":"Royal J","s09":"Royal Ten","s10":"Royal Nine"},"k":1.954648,"rtp":0.8381,"rtp1":0.8533,"hit":0.2822,"feat":0.00652,"big":0.00238,"maxLines":20},{"id":"jungle_relics","name":"Lost City Relics","family":"lock","volatility":"medium","accent":"#7ddf6b","cover":"/static/assets/posters35/jungle_relics.webp","names":{"s00":"Temple Tree","s01":"Emerald Leaf","s02":"Explorer Compass","s03":"Lost Map","s04":"Jungle Gem","s05":"Relic Key","s06":"Sun Idol","s07":"Stone Guardian","s18":"Wild","s19":"Book · Wild / Scatter","s08":"Royal J","s20":"Prize Coin"},"k":1.964909,"rtp":0.8511,"rtp1":0.8616,"hit":0.2355,"feat":0.00426,"big":0.00352,"maxLines":20},{"id":"cosmic_fortune","name":"Cosmic Fortune","family":"classic","volatility":"medium","accent":"#7a8cff","cover":"/static/assets/posters35/cosmic_fortune.webp","names":{"s00":"Starship","s01":"Nova Planet","s02":"Supernova","s03":"Solar Core","s04":"Lunar Orb","s05":"Plasma Bolt","s06":"Dark Matter Gem","s07":"Forge Core","s19":"Scatter"},"k":3.217602,"rtp":0.84,"rtp1":0.839,"hit":0.186,"feat":0,"big":0.00022,"maxLines":5},{"id":"panda_prosperity","name":"Jade Fortune","family":"lock","volatility":"high","accent":"#71df8b","cover":"/static/assets/posters35/panda_prosperity.webp","names":{"s00":"Panda Paw","s01":"Bamboo","s02":"Jade Coin","s03":"Red Gift","s04":"Fortune Star","s05":"Jade Moon","s06":"Golden Sun","s07":"Jade Gem","s18":"Wild","s19":"Scatter","s08":"Royal J","s09":"Royal Ten","s20":"Prize Coin"},"k":2.934947,"rtp":0.8505,"rtp1":0.8293,"hit":0.268,"feat":0.00227,"big":0.00189,"maxLines":20},{"id":"viking_valor","name":"Valhalla Storm","family":"book","volatility":"high","accent":"#6ab7ff","cover":"/static/assets/posters35/viking_valor.webp","names":{"s00":"Viking Shield","s01":"Odin Bolt","s02":"Longship","s03":"North Star","s04":"Jarl Crown","s05":"Frost Rune","s06":"War Axe","s07":"Forge Flame","s18":"Wild","s19":"Book · Wild / Scatter","s08":"Royal J"},"k":2.119891,"rtp":0.8395,"rtp1":0.8368,"hit":0.2355,"feat":0.00722,"big":0.00316,"maxLines":10},{"id":"ocean_crown","name":"Neptune’s Crown","family":"pearl","volatility":"low","accent":"#2dd8dc","cover":"/static/assets/posters35/ocean_crown.webp","names":{"s00":"Royal Anchor","s01":"Sea Galleon","s02":"Ocean Crest","s03":"Blue Pearl","s04":"Sea Star","s05":"Tide Compass","s06":"Royal Ring","s07":"Neptune Crown","s18":"Wild","s19":"Scatter","s08":"Royal J","s09":"Royal Ten","s10":"Royal Nine"},"k":2.149595,"rtp":0.8445,"rtp1":0.8254,"hit":0.2475,"feat":0.00725,"big":0.00218,"maxLines":20},{"id":"royal_masquerade","name":"Royal Masquerade","family":"fruit","volatility":"low","accent":"#db7fff","cover":"/static/assets/posters35/royal_masquerade.webp","names":{"s00":"Noir Mask","s01":"Velvet Eye","s02":"Amethyst","s03":"Ballroom Moon","s04":"Violin Note","s05":"Royal Heart","s06":"Chandelier Star","s07":"Crystal Glass","s18":"Wild","s19":"Scatter","s08":"Royal J","s09":"Royal Ten"},"k":4.227536,"rtp":0.8389,"rtp1":0.7908,"hit":0.2158,"feat":0.02278,"big":5e-05,"maxLines":15},{"id":"candy_catalyst","name":"Candy Rush","family":"sticky","volatility":"high","accent":"#ff70d0","cover":"/static/assets/posters35/candy_catalyst.webp","names":{"s00":"Sugar Flask","s01":"Candy Box","s02":"Sherbet Star","s03":"Gummy Heart","s04":"Pop Candy","s05":"Sugar Charge","s06":"Jawbreaker","s07":"Rock Candy","s18":"Wild","s19":"Scatter","s08":"Royal J","s09":"Royal Ten","s20":"Prize Coin"},"k":3.40943,"rtp":0.8461,"rtp1":0.8417,"hit":0.2836,"feat":0.00609,"big":0.00111,"maxLines":20},{"id":"havana_fortune","name":"Havana Nights","family":"fruit","volatility":"medium","accent":"#ff9f45","cover":"/static/assets/posters35/havana_fortune.webp","names":{"s00":"Brass Rhythm","s01":"Classic Coupe","s02":"Tropical Glass","s03":"Havana Star","s04":"Sunset Gem","s05":"Golden Sun","s06":"Salsa Heart","s07":"Club Key","s18":"Wild","s19":"Scatter","s08":"Royal J","s09":"Royal Ten"},"k":3.325355,"rtp":0.8364,"rtp1":0.8062,"hit":0.246,"feat":0.02013,"big":0.00019,"maxLines":15},{"id":"savannah_stampede","name":"Savannah Sunrise","family":"book","volatility":"high","accent":"#e5bd58","cover":"/static/assets/posters35/savannah_stampede.webp","names":{"s00":"Lion Paw","s01":"Acacia","s02":"Savannah Sun","s03":"Safari Glass","s04":"Bush Compass","s05":"Golden Gem","s06":"Safari Star","s07":"Wild Crown","s18":"Wild","s19":"Book · Wild / Scatter","s08":"Royal J"},"k":2.170959,"rtp":0.8458,"rtp1":0.8357,"hit":0.2411,"feat":0.00692,"big":0.00317,"maxLines":10},{"id":"haunted_treasury","name":"Phantom Fortune","family":"sticky","volatility":"medium","accent":"#8d70ff","cover":"/static/assets/posters35/haunted_treasury.webp","names":{"s00":"Phantom","s01":"Haunted Moon","s02":"Crypt Key","s03":"Spirit Gem","s04":"Watching Eye","s05":"Ghost Flame","s06":"Crypt Lock","s07":"Spectral Star","s18":"Wild","s19":"Book · Wild / Scatter","s08":"Royal J","s20":"Prize Coin"},"k":2.390081,"rtp":0.8487,"rtp1":0.862,"hit":0.2704,"feat":0.00701,"big":0.00217,"maxLines":20},{"id":"lucky_lotus","name":"Jade Lotus","family":"fruit","volatility":"medium","accent":"#ef7fb7","cover":"/static/assets/posters35/lucky_lotus.webp","names":{"s00":"Jade Lotus","s01":"Silk Leaf","s02":"Rose Gem","s03":"Lotus Star","s04":"Harmony Heart","s05":"Golden Sun","s06":"Jade Moon","s07":"Fortune Gift","s18":"Wild","s19":"Scatter","s08":"Royal J","s09":"Royal Ten"},"k":3.764201,"rtp":0.8384,"rtp1":0.8091,"hit":0.2355,"feat":0.01479,"big":0.00011,"maxLines":15},{"id":"cash_express","name":"Midnight Express","family":"lock","volatility":"low","accent":"#f0bf58","cover":"/static/assets/posters35/cash_express.webp","names":{"s00":"Express Train","s01":"Gold Ticket","s02":"Cash Stack","s03":"Station Clock","s04":"First-Class Gem","s05":"Rail Star","s06":"Carriage Key","s07":"Luxury Case","s19":"Scatter","s20":"Prize Coin"},"k":1.774221,"rtp":0.8337,"rtp1":0.8122,"hit":0.2206,"feat":0.00471,"big":0.00386,"maxLines":20},{"id":"phoenix_rising","name":"Phoenix Rising","family":"sticky","volatility":"medium","accent":"#ff6a24","cover":"/static/assets/posters35/phoenix_rising.webp","names":{"s00":"Phoenix Flame","s01":"Fire Feather","s02":"Rebirth Sun","s03":"Ember Star","s04":"Inferno Bolt","s05":"Flame Gem","s06":"Phoenix Crest","s07":"Ember Crown","s18":"Wild","s19":"Scatter","s08":"Royal J","s09":"Royal Ten","s10":"Royal Nine","s20":"Prize Coin"},"k":3.388583,"rtp":0.842,"rtp1":0.8162,"hit":0.2426,"feat":0.00609,"big":0.00104,"maxLines":20},{"id":"g30","name":"Neon Sevens","family":"classic","volatility":"medium","accent":"#ff608d","cover":"/static/assets/art55/g30.webp","names":{"s00":"Ruby Seven","s01":"Double Cherries","s02":"Brass Bell","s03":"Blue Bar","s04":"Electric Plum","s05":"Crystal Dice","s06":"Gold Horseshoe","s07":"Lucky Clover","s08":"Royal J","s09":"Royal Ten","s10":"Royal Nine","s18":"Wild","s19":"Scatter","s20":"Prize Coin"},"k":3.195538,"rtp":0.8351,"rtp1":0.8336,"hit":0.2267,"feat":0,"big":0.0005,"maxLines":5},{"id":"g31","name":"Diamond Fire","family":"respin","volatility":"high","accent":"#ff7651","cover":"/static/assets/art55/g31.webp","names":{"s00":"Fire Diamond","s01":"Frost Diamond","s02":"Sapphire Drop","s03":"Square Emerald","s04":"Golden Torch","s05":"Ruby Ring","s06":"Flame Chalice","s07":"Silver Crown","s08":"Royal J","s09":"Royal Ten","s10":"Royal Nine","s18":"Wild","s19":"Scatter","s20":"Prize Coin"},"k":0.999059,"rtp":0.8406,"rtp1":0.8449,"hit":0.2262,"feat":0.17741,"big":0.00766,"maxLines":10},{"id":"g32","name":"Gold Rush","family":"lock","volatility":"low","accent":"#ffbe50","cover":"/static/assets/art55/g32.webp","names":{"s00":"Prospector","s01":"Nugget Pile","s02":"Miner’s Lantern","s03":"Crossed Picks","s04":"Ore Cart","s05":"Dynamite","s06":"Gold Pan","s07":"Ore Crate","s08":"Royal J","s09":"Royal Ten","s10":"Royal Nine","s18":"Wild","s19":"Scatter","s20":"Prize Coin"},"k":1.443322,"rtp":0.8062,"rtp1":0.7995,"hit":0.2048,"feat":0.00667,"big":0.00546,"maxLines":20},{"id":"g33","name":"Jade Dragon Palace","family":"sticky","volatility":"medium","accent":"#53eaaa","cover":"/static/assets/art55/g33.webp","names":{"s00":"Jade Dragon","s01":"Red Lantern","s02":"Jade Disc","s03":"Golden Carp","s04":"Porcelain Vase","s05":"Imperial Fan","s06":"Gold Ingot","s07":"Pink Lotus","s08":"Royal J","s09":"Royal Ten","s10":"Royal Nine","s18":"Wild","s19":"Scatter","s20":"Prize Coin"},"k":2.766511,"rtp":0.8343,"rtp1":0.8384,"hit":0.2968,"feat":0.0062,"big":0.00164,"maxLines":20},{"id":"g34","name":"Starlight Limited","family":"fruit","volatility":"low","accent":"#63afea","cover":"/static/assets/art55/g34.webp","names":{"s00":"Locomotive","s01":"Station Clock","s02":"Conductor’s Cap","s03":"Train Whistle","s04":"Brass Ticket","s05":"Signal Lantern","s06":"Luggage Key","s07":"Leather Suitcase","s08":"Royal J","s09":"Royal Ten","s10":"Royal Nine","s18":"Wild","s19":"Scatter","s20":"Prize Coin"},"k":3.813561,"rtp":0.8434,"rtp1":0.7776,"hit":0.2152,"feat":0.03002,"big":9e-05,"maxLines":15},{"id":"g35","name":"Siren’s Pearl","family":"pearl","volatility":"low","accent":"#84eced","cover":"/static/assets/art55/g35.webp","names":{"s00":"Siren","s01":"Pearl Shell","s02":"Seahorse","s03":"Gold Trident","s04":"Red Coral","s05":"Sea Turtle","s06":"Purple Conch","s07":"Gold Starfish","s08":"Royal J","s09":"Royal Ten","s10":"Royal Nine","s18":"Wild","s19":"Scatter","s20":"Prize Coin"},"k":2.109073,"rtp":0.8368,"rtp1":0.8359,"hit":0.2527,"feat":0.00796,"big":0.00234,"maxLines":20},{"id":"g36","name":"Thunder Mesa","family":"respin","volatility":"medium","accent":"#de9469","cover":"/static/assets/art55/g36.webp","names":{"s00":"Storm Bison","s01":"Thunder Mesa","s02":"Thunderbird","s03":"Golden Eagle","s04":"Rattlesnake","s05":"Desert Flower","s06":"Cactus","s07":"Agate Geode","s08":"Royal J","s09":"Royal Ten","s10":"Royal Nine","s18":"Wild","s19":"Scatter","s20":"Prize Coin"},"k":0.778741,"rtp":0.8385,"rtp1":0.8332,"hit":0.2471,"feat":0.18572,"big":0.01169,"maxLines":10},{"id":"g37","name":"Clockwork Crown","family":"lock","volatility":"low","accent":"#edba63","cover":"/static/assets/art55/g37.webp","names":{"s00":"Clockwork Monarch","s01":"Mechanical Scarab","s02":"Royal Crown","s03":"Pocket Watch","s04":"Mechanical Songbird","s05":"Winding Key","s06":"Silver Gear","s07":"Hourglass","s08":"Royal J","s09":"Royal Ten","s10":"Royal Nine","s18":"Wild","s19":"Scatter","s20":"Prize Coin"},"k":2.24292,"rtp":0.823,"rtp1":0.7872,"hit":0.1989,"feat":0.00358,"big":0.00291,"maxLines":20},{"id":"g38","name":"Aurora Wolves","family":"sticky","volatility":"medium","accent":"#7fd6f3","cover":"/static/assets/art55/g38.webp","names":{"s00":"Silver Wolf","s01":"Polar Bear","s02":"Arctic Owl","s03":"Northern Star","s04":"Glacier Crystal","s05":"Reindeer","s06":"Alpine Bloom","s07":"Aurora Pendant","s08":"Royal J","s09":"Royal Ten","s10":"Royal Nine","s18":"Wild","s19":"Scatter","s20":"Prize Coin"},"k":2.464209,"rtp":0.832,"rtp1":0.8289,"hit":0.2656,"feat":0.00657,"big":0.00195,"maxLines":20},{"id":"g39","name":"Carnival Royale","family":"fruit","volatility":"low","accent":"#eb73bf","cover":"/static/assets/art55/g39.webp","names":{"s00":"Ringmaster’s Hat","s01":"Masquerade Mask","s02":"Carousel Horse","s03":"Golden Lion","s04":"Carnival Drum","s05":"Circus Lantern","s06":"Feather Fan","s07":"Pinwheel","s08":"Royal J","s09":"Royal Ten","s10":"Royal Nine","s18":"Wild","s19":"Scatter","s20":"Prize Coin"},"k":3.783691,"rtp":0.8426,"rtp1":0.7781,"hit":0.2126,"feat":0.02474,"big":9e-05,"maxLines":15},{"id":"g40","name":"Sunstone Jaguar","family":"book","volatility":"medium","accent":"#f4b451","cover":"/static/assets/art55/g40.webp","names":{"s00":"Sunstone Jaguar","s01":"Quetzal","s02":"Amber Sun","s03":"Jade Serpent","s04":"Macaw Feather","s05":"Ritual Vessel","s06":"Gold Pyramid","s07":"Ruby Sunstone","s08":"Royal J","s09":"Royal Ten","s10":"Royal Nine","s18":"Wild","s19":"Wild / Scatter","s20":"Prize Coin"},"k":1.823304,"rtp":0.8373,"rtp1":0.8549,"hit":0.2292,"feat":0.00734,"big":0.00395,"maxLines":10}],"A51":{"temple":{"src":"static/assets/art51/worlds-0.webp","pos":"0% 0%","view":"0 0 768 512","w":1536,"h":1024},"pharaoh_secret":{"src":"static/assets/art51/worlds-0.webp","pos":"100% 0%","view":"768 0 768 512","w":1536,"h":1024},"diamond":{"src":"static/assets/art51/worlds-0.webp","pos":"0% 100%","view":"0 512 768 512","w":1536,"h":1024},"dragon":{"src":"static/assets/art51/worlds-0.webp","pos":"100% 100%","view":"768 512 768 512","w":1536,"h":1024},"bass":{"src":"static/assets/art51/worlds-1.webp","pos":"0% 0%","view":"0 0 768 512","w":1536,"h":1024},"outlaw":{"src":"static/assets/art51/worlds-1.webp","pos":"100% 0%","view":"768 0 768 512","w":1536,"h":1024},"safari":{"src":"static/assets/art51/worlds-1.webp","pos":"0% 100%","view":"0 512 768 512","w":1536,"h":1024},"neon_empire":{"src":"static/assets/art51/worlds-1.webp","pos":"100% 100%","view":"768 512 768 512","w":1536,"h":1024},"volcano_vault":{"src":"static/assets/art51/worlds-2.webp","pos":"0% 0%","view":"0 0 768 512","w":1536,"h":1024},"moonlit_magic":{"src":"static/assets/art51/worlds-2.webp","pos":"100% 0%","view":"768 0 768 512","w":1536,"h":1024},"fruit":{"src":"static/assets/art51/worlds-2.webp","pos":"0% 100%","view":"0 512 768 512","w":1536,"h":1024},"rugby":{"src":"static/assets/art51/worlds-2.webp","pos":"100% 100%","view":"768 512 768 512","w":1536,"h":1024},"marilyn":{"src":"static/assets/art51/worlds-3.webp","pos":"0% 0%","view":"0 0 768 512","w":1536,"h":1024},"arctic_crown":{"src":"static/assets/art51/worlds-3.webp","pos":"100% 0%","view":"768 0 768 512","w":1536,"h":1024},"samurai_gold":{"src":"static/assets/art51/worlds-3.webp","pos":"0% 100%","view":"0 512 768 512","w":1536,"h":1024},"jungle_relics":{"src":"static/assets/art51/worlds-3.webp","pos":"100% 100%","view":"768 512 768 512","w":1536,"h":1024},"cosmic_fortune":{"src":"static/assets/art51/worlds-4.webp","pos":"0% 0%","view":"0 0 768 512","w":1536,"h":1024},"panda_prosperity":{"src":"static/assets/art51/worlds-4.webp","pos":"100% 0%","view":"768 0 768 512","w":1536,"h":1024},"viking_valor":{"src":"static/assets/art51/worlds-4.webp","pos":"0% 100%","view":"0 512 768 512","w":1536,"h":1024},"ocean_crown":{"src":"static/assets/art51/worlds-4.webp","pos":"100% 100%","view":"768 512 768 512","w":1536,"h":1024},"royal_masquerade":{"src":"static/assets/art51/worlds-5.webp","pos":"0% 0%","view":"0 0 768 512","w":1536,"h":1024},"candy_catalyst":{"src":"static/assets/art51/worlds-5.webp","pos":"100% 0%","view":"768 0 768 512","w":1536,"h":1024},"havana_fortune":{"src":"static/assets/art51/worlds-5.webp","pos":"0% 100%","view":"0 512 768 512","w":1536,"h":1024},"savannah_stampede":{"src":"static/assets/art51/worlds-5.webp","pos":"100% 100%","view":"768 512 768 512","w":1536,"h":1024},"haunted_treasury":{"src":"static/assets/art51/worlds-6.webp","pos":"0% 0%","view":"0 0 768 512","w":1536,"h":1024},"lucky_lotus":{"src":"static/assets/art51/worlds-6.webp","pos":"100% 0%","view":"768 0 768 512","w":1536,"h":1024},"cash_express":{"src":"static/assets/art51/worlds-6.webp","pos":"0% 100%","view":"0 512 768 512","w":1536,"h":1024},"phoenix_rising":{"src":"static/assets/art51/worlds-6.webp","pos":"100% 100%","view":"768 512 768 512","w":1536,"h":1024},"pirate_dominion":{"src":"static/assets/art49/pirate-cabinet50.png","pos":"center top","view":"0 0 1024 460","w":1024,"h":1536},"g30":{"src":"static/assets/art55/g30.webp","view":"0 0 1152 648","pos":"center","w":1152,"h":648},"g31":{"src":"static/assets/art55/g31.webp","view":"0 0 1152 648","pos":"center","w":1152,"h":648},"g32":{"src":"static/assets/art55/g32.webp","view":"0 0 1152 648","pos":"center","w":1152,"h":648},"g33":{"src":"static/assets/art55/g33.webp","view":"0 0 1152 648","pos":"center","w":1152,"h":648},"g34":{"src":"static/assets/art55/g34.webp","view":"0 0 1152 648","pos":"center","w":1152,"h":648},"g35":{"src":"static/assets/art55/g35.webp","view":"0 0 1152 648","pos":"center","w":1152,"h":648},"g36":{"src":"static/assets/art55/g36.webp","view":"0 0 1152 648","pos":"center","w":1152,"h":648},"g37":{"src":"static/assets/art55/g37.webp","view":"0 0 1152 648","pos":"center","w":1152,"h":648},"g38":{"src":"static/assets/art55/g38.webp","view":"0 0 1152 648","pos":"center","w":1152,"h":648},"g39":{"src":"static/assets/art55/g39.webp","view":"0 0 1152 648","pos":"center","w":1152,"h":648},"g40":{"src":"static/assets/art55/g40.webp","view":"0 0 1152 648","pos":"center","w":1152,"h":648}},"A52":{"haunted_treasury":{"src":"static/assets/art52/symbols-0.webp","offset":0},"pharaoh_secret":{"src":"static/assets/art52/symbols-0.webp","offset":8},"temple":{"src":"static/assets/art52/symbols-1.webp","offset":0},"diamond":{"src":"static/assets/art52/symbols-1.webp","offset":8},"dragon":{"src":"static/assets/art52/symbols-2.webp","offset":0},"bass":{"src":"static/assets/art52/symbols-2.webp","offset":8},"outlaw":{"src":"static/assets/art52/symbols-3.webp","offset":0},"safari":{"src":"static/assets/art52/symbols-3.webp","offset":8},"neon_empire":{"src":"static/assets/art52/symbols-4.webp","offset":0},"volcano_vault":{"src":"static/assets/art52/symbols-4.webp","offset":8},"moonlit_magic":{"src":"static/assets/art52/symbols-5.webp","offset":0},"fruit":{"src":"static/assets/art52/symbols-5.webp","offset":8},"rugby":{"src":"static/assets/art52/symbols-6.webp","offset":0},"marilyn":{"src":"static/assets/art52/symbols-6.webp","offset":8},"arctic_crown":{"src":"static/assets/art52/symbols-7.webp","offset":0},"samurai_gold":{"src":"static/assets/art52/symbols-7.webp","offset":8},"jungle_relics":{"src":"static/assets/art52/symbols-8.webp","offset":0},"cosmic_fortune":{"src":"static/assets/art52/symbols-8.webp","offset":8},"panda_prosperity":{"src":"static/assets/art52/symbols-9.webp","offset":0},"viking_valor":{"src":"static/assets/art52/symbols-9.webp","offset":8},"ocean_crown":{"src":"static/assets/art52/symbols-10.webp","offset":0},"royal_masquerade":{"src":"static/assets/art52/symbols-10.webp","offset":8},"candy_catalyst":{"src":"static/assets/art52/symbols-11.webp","offset":0},"havana_fortune":{"src":"static/assets/art52/symbols-11.webp","offset":8},"savannah_stampede":{"src":"static/assets/art52/symbols-12.webp","offset":0},"lucky_lotus":{"src":"static/assets/art52/symbols-12.webp","offset":8},"cash_express":{"src":"static/assets/art52/symbols-13.webp","offset":0},"phoenix_rising":{"src":"static/assets/art52/symbols-13.webp","offset":8},"g30":{"src":"static/assets/art55/symbols-0.webp","offset":0},"g31":{"src":"static/assets/art55/symbols-0.webp","offset":8},"g32":{"src":"static/assets/art55/symbols-1.webp","offset":0},"g33":{"src":"static/assets/art55/symbols-1.webp","offset":8},"g34":{"src":"static/assets/art55/symbols-2.webp","offset":0},"g35":{"src":"static/assets/art55/symbols-2.webp","offset":8},"g36":{"src":"static/assets/art55/symbols-3.webp","offset":0},"g37":{"src":"static/assets/art55/symbols-3.webp","offset":8},"g38":{"src":"static/assets/art55/symbols-4.webp","offset":0},"g39":{"src":"static/assets/art55/symbols-4.webp","offset":8},"g40":{"src":"static/assets/art55/symbols-5.webp","offset":0}},"map49":{"s00":0,"s01":6,"s02":1,"s03":2,"s04":5,"s05":3,"s06":7,"s07":4,"s08":11,"s09":12,"s10":13,"s18":14,"s19":15}};</script>
+<script>(function () {
+'use strict';
+var E = SREngine, D = SITE, WILD = E.WILD, SCAT = E.SCAT, COIN = E.COIN;
+var $ = function (id) { return document.getElementById(id); };
+var LB = [0.05, 0.10, 0.20, 0.50, 1, 2, 5];
+var COMMON = 'static/assets/art52/common.webp', PIR = 'static/assets/art49/pirate-symbols50.png';
+var S = { bal: 25000, lbIdx: 1, lines: {}, turbo: false, auto: 0, sound: true, busy: false, gambleAmt: 0, age: false, stopReq: false };
+try { var sv = JSON.parse(localStorage.getItem('spinrush-site-v2') || 'null');
+  if (sv && isFinite(sv.bal)) { S.bal = Math.max(0, +sv.bal); S.lbIdx = Math.min(LB.length - 1, Math.max(0, sv.lbIdx | 0)); S.lines = sv.lines || {}; S.turbo = !!sv.turbo; S.sound = sv.sound !== false; S.age = !!sv.age; } } catch (e) {}
+function save() { try { localStorage.setItem('spinrush-site-v2', JSON.stringify({ bal: S.bal, lbIdx: S.lbIdx, lines: S.lines, turbo: S.turbo, sound: S.sound, age: S.age })); } catch (e) {} }
+function r2(v) { return Math.round(v * 100) / 100; }
+function money(v) { var neg = v < 0; v = Math.round(Math.abs(v) * 100); var c = v % 100, w = String(Math.floor(v / 100)).replace(/\B(?=(\d{3})+(?!\d))/g, ' '); return (neg ? '−' : '') + 'R ' + w + ',' + (c < 10 ? '0' : '') + c; }
+function short(v) { return v >= 1000 ? 'R' + (v / 1000).toFixed(v >= 10000 ? 0 : 1) + 'k' : v >= 100 ? 'R' + Math.round(v) : 'R' + (Math.round(v * 100) / 100).toString().replace('.', ','); }
+function rng(n) { var a = new Uint32Array(1), lim = Math.floor(4294967296 / n) * n; do { crypto.getRandomValues(a); } while (a[0] >= lim); return a[0] % n; }
+var sleep = function (ms) { return new Promise(function (r) { setTimeout(r, ms); }); };
+var RM = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+var GAMES = D.games, byId = {}; GAMES.forEach(function (g) { byId[g.id] = g; });
+var LABEL = function (f) { return E.FAMILY[f].label; };
+
+/* ================================================================ sound (synthesised) */
+var AC = null, master = null;
+function audio() { if (!S.sound) return null; if (!AC) { try { AC = new (window.AudioContext || window.webkitAudioContext)(); master = AC.createGain(); master.gain.value = .5; master.connect(AC.destination); } catch (e) { return null; } } if (AC.state === 'suspended') AC.resume(); return AC; }
+function tone(f, t, d, type, vol, slide) { var a = audio(); if (!a) return; var o = a.createOscillator(), g = a.createGain(), s = a.currentTime + (t || 0); o.type = type || 'sine'; o.frequency.setValueAtTime(f, s); if (slide) o.frequency.exponentialRampToValueAtTime(slide, s + d); g.gain.setValueAtTime(.0001, s); g.gain.exponentialRampToValueAtTime(vol || .2, s + .01); g.gain.exponentialRampToValueAtTime(.0001, s + d); o.connect(g); g.connect(master); o.start(s); o.stop(s + d + .02); }
+function noise(t, d, vol, hp) { var a = audio(); if (!a) return; var n = a.sampleRate * d | 0, b = a.createBuffer(1, n, a.sampleRate), ch = b.getChannelData(0); for (var i = 0; i < n; i++) ch[i] = (Math.random() * 2 - 1) * (1 - i / n); var s = a.createBufferSource(), f = a.createBiquadFilter(), g = a.createGain(); s.buffer = b; f.type = 'highpass'; f.frequency.value = hp || 2000; g.gain.value = vol || .12; s.connect(f); f.connect(g); g.connect(master); s.start(a.currentTime + (t || 0)); }
+var SND = {
+  click: function () { tone(1400, 0, .04, 'square', .04); },
+  coin: function () { tone(1900, 0, .06, 'square', .045); tone(2600, .05, .1, 'square', .035); },
+  tick: function () { noise(0, .022, .04, 3200); },
+  stop: function (c) { tone(140 - c * 7, 0, .15, 'sine', .45, 48); noise(0, .05, .1, 1400); },
+  scat: function (n) { tone(880 * Math.pow(1.26, n), 0, .32, 'triangle', .22); tone(1760 * Math.pow(1.26, n), .05, .38, 'sine', .1); },
+  tease: function () { tone(180, 0, 1.1, 'sawtooth', .05, 720); },
+  small: function () { [784, 988, 1175].forEach(function (f, i) { tone(f, i * .07, .22, 'triangle', .16); }); },
+  win: function () { [523, 659, 784, 1047, 1319].forEach(function (f, i) { tone(f, i * .08, .3, 'triangle', .18); }); },
+  roll: function () { tone(2000 + Math.random() * 300, 0, .03, 'square', .025); },
+  big: function () { [[523, 659, 784], [587, 740, 880], [659, 831, 988], [784, 988, 1175, 1568]].forEach(function (ch, i) { ch.forEach(function (f) { tone(f, i * .22, .5, 'sawtooth', .06); tone(f * 2, i * .22, .5, 'triangle', .045); }); }); },
+  fs: function () { for (var i = 0; i < 10; i++) tone(400 * Math.pow(1.122, i), i * .07, .25, 'triangle', .14); },
+  lock: function () { tone(660, 0, .12, 'square', .07); tone(990, .06, .25, 'triangle', .16); },
+  heart: function () { tone(70, 0, .15, 'sine', .35, 50); }
+};
+
+/* ================================================================ art */
+var IMG = {};
+function img(src) { if (!IMG[src]) { var im = new Image(); im.decoding = 'async'; im.src = src; IMG[src] = im; } return IMG[src]; }
+function loaded(srcs) { return Promise.all(srcs.map(function (s) { var im = img(s); return im.complete && im.naturalWidth ? 1 : new Promise(function (r) { im.onload = im.onerror = r; }); })); }
+function tile(x, im, idx, dx, dy, dw, dh) { if (!im.naturalWidth) return; var sw = im.naturalWidth / 4, sh = im.naturalHeight / 4; x.drawImage(im, (idx % 4) * sw, Math.floor(idx / 4) * sh, sw, sh, dx, dy, dw, dh); }
+function worldSvg(id, dim) { var a = D.A51[id]; if (!a) return ''; return '<svg viewBox="' + a.view + '" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><image href="' + a.src.replace(/^\//, '') + '" width="' + a.w + '" height="' + a.h + '"/></svg>'; }
+function sheetFor(id) { var a = D.A52[id]; return a ? a.src.replace(/^\//, '') : PIR; }
+function rr(x, X, Y, w, h, r) { x.beginPath(); x.moveTo(X + r, Y); x.arcTo(X + w, Y, X + w, Y + h, r); x.arcTo(X + w, Y + h, X, Y + h, r); x.arcTo(X, Y + h, X, Y, r); x.arcTo(X, Y, X + w, Y, r); x.closePath(); }
+
+function drawSymbol(x, code, px, gid, family) {
+  var a = D.A52[gid], pir = !a, sheet = img(sheetFor(gid)), common = img(COMMON), z = px * .94, o = (px - z) / 2;
+  if (code <= 7) tile(x, sheet, pir ? D.map49['s0' + code] : a.offset + code, o, o, z, z);
+  else if (code <= 10) tile(x, pir ? sheet : common, pir ? D.map49['s' + (code < 10 ? '0' : '') + code] : [3, 4, 5][code - 8], o, o, z, z);
+  else if (code === WILD) {
+    if (pir) { tile(x, sheet, D.map49.s18, o, o, z, z); return; }
+    var w = D.A51[gid], wim = w && img(w.src.replace(/^\//, '')), p = px * .06;
+    x.save(); rr(x, p, p, px - 2 * p, px - 2 * p, px * .08); x.clip();
+    var bg = x.createLinearGradient(0, 0, px, px); bg.addColorStop(0, byId[gid].accent || '#8b40c0'); bg.addColorStop(1, '#180c29'); x.fillStyle = bg; x.fillRect(0, 0, px, px);
+    if (wim && wim.naturalWidth) { var v = w.view.split(' ').map(Number), crop = Math.min(v[2], v[3]); x.drawImage(wim, v[0] + (v[2] - crop) / 2, v[1], crop, v[3], p, p, px - 2 * p, px - 2 * p); }
+    x.fillStyle = 'rgba(33,11,42,.86)'; x.fillRect(p, px * .7, px - 2 * p, px * .3 - p); x.restore();
+    tile(x, common, 12, 0, 0, px, px);
+    x.font = '900 ' + Math.round(px * .2) + 'px Georgia, serif'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.lineWidth = Math.max(2, px * .025); x.strokeStyle = '#4e140d'; x.fillStyle = '#ffdc78';
+    x.strokeText('WILD', px / 2, px * .83); x.fillText('WILD', px / 2, px * .83);
+  } else if (code === SCAT) {
+    if (pir) tile(x, sheet, D.map49.s19, o, o, z, z); else tile(x, common, family === 'book' ? 6 : 7, o, o, z, z);
+    var book = family === 'book', lab = book ? 'WILD / SCATTER' : 'SCATTER';
+    x.fillStyle = 'rgba(33,13,36,.9)'; x.fillRect(px * .04, px * .74, px * .92, px * .18);
+    x.font = '900 ' + Math.round(px * (book ? .09 : .12)) + 'px Georgia, serif'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillStyle = '#ffe29a'; x.fillText(lab, px / 2, px * .835, px * .9);
+  } else if (code === COIN) tile(x, common, 8, o, o, z, z);
+}
+
+/* ================================================================ lobby */
+var FEAT = ['g31', 'g34', 'g35'], feat = 0, filter = 'all';
+var ORDER = ['respin', 'book', 'pearl', 'fruit', 'classic', 'lock', 'sticky'];
+function heroShow(i) {
+  feat = i; var g = byId[FEAT[i]];
+  $('heroArt').innerHTML = worldSvg(g.id);
+  $('heroTitle').textContent = g.name; $('heroText').textContent = E.FAMILY[g.family].blurb; $('heroPlay').textContent = 'PLAY ' + g.name.toUpperCase() + ' ↗';
+  $('heroPills').innerHTML = FEAT.map(function (id, j) { return '<button class="pill' + (j === i ? ' on' : '') + '" data-i="' + j + '">' + byId[id].name + '</button>'; }).join('');
+}
+function renderLobby() {
+  var counts = {}; GAMES.forEach(function (g) { counts[g.family] = (counts[g.family] || 0) + 1; });
+  $('chips').innerHTML = '<button class="chip' + (filter === 'all' ? ' on' : '') + '" data-f="all">All slots<b>' + GAMES.length + '</b></button>' +
+    ORDER.map(function (f) { return '<button class="chip' + (filter === f ? ' on' : '') + '" data-f="' + f + '">' + LABEL(f) + '<b>' + counts[f] + '</b></button>'; }).join('');
+  var q = $('q').value.trim().toLowerCase();
+  var list = GAMES.filter(function (g) { return (filter === 'all' || g.family === filter) && (!q || g.name.toLowerCase().indexOf(q) >= 0); });
+  $('grid').innerHTML = list.map(function (g) {
+    return '<button class="card" data-id="' + g.id + '"><img loading="lazy" decoding="async" src="' + g.cover.replace(/^\//, '') + '" alt=""><span class="rt">' + (g.rtp * 100).toFixed(1) + '%</span><span class="meta"><span class="nm">' + g.name + '</span><span class="fm">' + LABEL(g.family) + ' · ' + g.maxLines + ' lines</span></span></button>';
+  }).join('');
+  $('empty').hidden = list.length > 0;
+  $('collSub').textContent = GAMES.length + ' games · find your next world.';
+  $('lobBal').textContent = money(S.bal);
+}
+$('chips').addEventListener('click', function (e) { var b = e.target.closest('.chip'); if (!b) return; filter = b.dataset.f; renderLobby(); });
+$('grid').addEventListener('click', function (e) { var b = e.target.closest('.card'); if (b) go(b.dataset.id); });
+$('q').addEventListener('input', renderLobby);
+$('heroPills').addEventListener('click', function (e) { var b = e.target.closest('.pill'); if (b) heroShow(+b.dataset.i); });
+$('heroPlay').addEventListener('click', function () { go(FEAT[feat]); });
+
+/* routing: #play-<id> */
+function hashFor(id) { return '#play-' + id.replace(/_/g, '-'); }
+function idFromHash() { var m = location.hash.match(/^#play-([a-z0-9-]+)$/); if (!m) return null; var id = m[1].replace(/-/g, '_'); return byId[id] ? id : null; }
+function go(id) { if (S.busy) return; location.hash = hashFor(id); }
+function route() {
+  var id = idFromHash();
+  if (id && (!G || G.id !== id || $('gameView').hidden)) { if (!S.busy) openGame(id); }
+  else if (!id) { if (S.busy) { location.hash = hashFor(G.id); return; } $('gameView').hidden = true; $('lobby').hidden = false; S.auto = 0; renderLobby(); window.scrollTo(0, 0); }
+}
+window.addEventListener('hashchange', route);
+
+/* ================================================================ game */
+var G = null, entry = null, cv = $('reels'), cx = cv.getContext('2d'), fx = $('fx'), fxx = fx.getContext('2d');
+var DPR = 1, CW = 0, CH = 0, cw = 0, ch = 0, SPR = {}, SPRB = {}, PX = 0, reels = [], raf = null, lastTick = 0;
+var scene = { held: null, sticky: null, expand: null, coins: null, winCells: null, item: null, tease: -1, hw: null, dimAll: false };
+function lines() { return Math.min(G.maxLines, Math.max(1, S.lines[G.id] || G.maxLines)); }
+function lineBet() { return LB[S.lbIdx]; }
+function totalBet() { return r2(lines() * lineBet()); }
+
+function openGame(id) {
+  entry = byId[id]; G = E.makeGame({ id: id, family: entry.family, volatility: entry.volatility, name: entry.name }); G.k = entry.k;
+  $('lobby').hidden = true; $('gameView').hidden = false; window.scrollTo(0, 0);
+  $('gName').textContent = entry.name; $('gFam').textContent = LABEL(entry.family) + ' · up to ' + G.maxLines + ' lines';
+  $('world').innerHTML = worldSvg(id);
+  $('rtpFoot').textContent = 'Payout rate ' + (entry.rtp * 100).toFixed(1) + '% at ' + G.maxLines + ' lines, checked over 3 million spins.';
+  scene = { held: null, sticky: null, expand: null, coins: null, winCells: null, item: null, tease: -1, hw: null, dimAll: false };
+  S.gambleAmt = 0; $('winM').querySelector('b').textContent = money(0);
+  msg(E.FAMILY[entry.family].blurb);
+  reels = G.strips.map(function (s) { return { pos: rng(s.length), phase: 'idle', v: 0 }; });
+  PX = 0; SPR = {}; SPRB = {};
+  var srcs = [sheetFor(id), COMMON]; if (D.A51[id]) srcs.push(D.A51[id].src.replace(/^\//, ''));
+  loaded(srcs).then(function () { PX = 0; resize(); });
+  resize(); paint();
+}
+function buildSprites(px) {
+  SPR = {}; SPRB = {};
+  [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, WILD, SCAT, COIN].forEach(function (code) {
+    var c = document.createElement('canvas'); c.width = c.height = px; drawSymbol(c.getContext('2d'), code, px, G.id, G.family); SPR[code] = c;
+    var b = document.createElement('canvas'); b.width = b.height = px; var bx = b.getContext('2d'); for (var i = -3; i <= 3; i++) { bx.globalAlpha = .2; bx.drawImage(c, 0, i * px * .07); } SPRB[code] = b;
+  });
+}
+function resize() {
+  if (!G || $('gameView').hidden) return;
+  var r = $('win').getBoundingClientRect(); if (!r.width) return;
+  DPR = Math.min(2.5, window.devicePixelRatio || 1); CW = r.width; CH = r.height;
+  cv.width = fx.width = Math.round(CW * DPR); cv.height = fx.height = Math.round(CH * DPR); cw = CW / 5; ch = CH / 3;
+  var px = Math.round(Math.min(cw, ch) * DPR); if (px !== PX) { PX = px; buildSprites(px); } draw();
+}
+new ResizeObserver(function () { resize(); }).observe($('win'));
+
+function draw() {
+  var x = cx; x.setTransform(DPR, 0, 0, DPR, 0, 0); x.clearRect(0, 0, CW, CH);
+  if (!G || !PX) return;
+  if (scene.hw) { drawHold(x); return; }
+  for (var c = 0; c < 5; c++) {
+    var R = reels[c], s = G.strips[c], L = s.length, x0 = c * cw;
+    var bg = x.createLinearGradient(0, 0, 0, CH); bg.addColorStop(0, 'rgba(10,6,24,.82)'); bg.addColorStop(.5, 'rgba(26,14,48,.62)'); bg.addColorStop(1, 'rgba(10,6,24,.82)');
+    x.fillStyle = bg; x.fillRect(x0 + 1, 0, cw - 2, CH);
+    if (scene.tease === c) { x.fillStyle = 'rgba(190,110,255,' + (.18 + .12 * Math.sin(performance.now() / 80)) + ')'; x.fillRect(x0 + 1, 0, cw - 2, CH); }
+    var p = R.pos, base = Math.floor(p), off = p - base, fast = R.v > 9, sz = Math.min(cw, ch) * .96;
+    x.save(); x.beginPath(); x.rect(x0, 0, cw, CH); x.clip();
+    for (var k = -1; k <= 3; k++) {
+      var sym = s[((base + k) % L + L) % L], y = (k - off) * ch, dx = x0 + (cw - sz) / 2, dy = y + (ch - sz) / 2;
+      var cell = k >= 0 && k < 3 && off === 0 ? k * 5 + c : -1;
+      if (cell >= 0 && scene.held && scene.held[c]) continue;
+      if (cell >= 0 && scene.sticky && scene.sticky.indexOf(cell) >= 0) continue;
+      var lit = cell >= 0 && scene.winCells && scene.winCells[cell];
+      if (lit) { var sc = 1 + .07 * Math.sin(performance.now() / 95); x.save(); x.translate(x0 + cw / 2, y + ch / 2); x.scale(sc, sc); x.translate(-(x0 + cw / 2), -(y + ch / 2)); x.shadowColor = '#ffd76e'; x.shadowBlur = 22; x.drawImage(SPR[sym], dx, dy, sz, sz); x.restore(); }
+      else { if (cell >= 0 && (scene.winCells || scene.dimAll)) x.globalAlpha = .38; x.drawImage((fast ? SPRB : SPR)[sym] || SPR[0], dx, dy, sz, sz); x.globalAlpha = 1; }
+      if (cell >= 0 && sym === COIN && scene.coins && scene.coins[cell] !== undefined) coinText(x, scene.coins[cell], x0 + cw / 2, y + ch / 2, sz);
+    }
+    x.restore();
+    if (c > 0) { x.fillStyle = 'rgba(237,204,137,.28)'; x.fillRect(x0 - .5, 0, 1, CH); }
+  }
+  // held (expanded) wild reels
+  if (scene.held) for (var hc = 0; hc < 5; hc++) if (scene.held[hc]) {
+    var hx = hc * cw; x.save(); x.shadowColor = '#ffcf5a'; x.shadowBlur = 18; x.fillStyle = 'rgba(40,16,60,.85)'; x.fillRect(hx + 2, 2, cw - 4, CH - 4); x.restore();
+    for (var hr = 0; hr < 3; hr++) { var hs = Math.min(cw, ch) * .96; x.drawImage(SPR[WILD], hx + (cw - hs) / 2, hr * ch + (ch - hs) / 2, hs, hs); }
+    x.save(); x.strokeStyle = '#ffd76e'; x.lineWidth = 3; x.shadowColor = '#ffd76e'; x.shadowBlur = 14; rr(x, hx + 3, 3, cw - 6, CH - 6, 10); x.stroke(); x.restore();
+  }
+  if (scene.sticky) scene.sticky.forEach(function (cell) {
+    var sc2 = cell % 5, sr = Math.floor(cell / 5), ss = Math.min(cw, ch) * .96, sx = sc2 * cw + (cw - ss) / 2, sy = sr * ch + (ch - ss) / 2;
+    x.save(); x.shadowColor = '#ffcf5a'; x.shadowBlur = 16; x.drawImage(SPR[WILD], sx, sy, ss, ss); x.restore();
+    x.fillStyle = 'rgba(20,8,30,.85)'; x.fillRect(sx + ss * .2, sy + ss * .02, ss * .6, ss * .14); x.fillStyle = '#ffe9a8'; x.font = '800 ' + Math.max(8, ss * .1) + 'px Inter, sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText('LOCKED', sx + ss / 2, sy + ss * .09);
+  });
+  if (scene.expand) {
+    var e = scene.expand; e.reels.forEach(function (ec) {
+      var ex = ec * cw; x.save(); x.fillStyle = 'rgba(30,10,50,.75)'; x.fillRect(ex + 2, 2, cw - 4, CH - 4);
+      x.shadowColor = '#c78bff'; x.shadowBlur = 20; var es = Math.min(cw, ch) * .96; for (var er = 0; er < 3; er++) x.drawImage(SPR[e.sym], ex + (cw - es) / 2, er * ch + (ch - es) / 2, es, es); x.restore();
+      x.save(); x.strokeStyle = '#d7a6ff'; x.lineWidth = 3; rr(x, ex + 3, 3, cw - 6, CH - 6, 10); x.stroke(); x.restore();
+    });
+  }
+  if (scene.item) {
+    var it = scene.item; x.save(); x.strokeStyle = it.color; x.shadowColor = it.color; x.shadowBlur = 14; x.lineJoin = 'round'; x.lineCap = 'round';
+    if (it.path) { x.lineWidth = 4; x.beginPath(); for (var lc = 0; lc < 5; lc++) { var lx = lc * cw + cw / 2, ly = it.path[lc] * ch + ch / 2; if (!lc) x.moveTo(4, ly); x.lineTo(lx, ly); } x.lineTo(CW - 4, it.path[4] * ch + ch / 2); x.stroke(); }
+    x.shadowBlur = 8; x.lineWidth = 2.5; (it.cells || []).forEach(function (q) { rr(x, q[1] * cw + 4, q[0] * ch + 4, cw - 8, ch - 8, 10); x.stroke(); }); x.restore();
+  }
+}
+function coinText(x, v, X, Y, sz) {
+  var lab = v === 200 ? 'MAJOR' : v === 50 ? 'MINOR' : v === 20 ? 'MINI' : null, amt = v * totalBet() * G.k;
+  x.save(); x.textAlign = 'center'; x.textBaseline = 'middle';
+  var t = lab || short(amt); x.font = '900 ' + Math.round(sz * (t.length > 5 ? .15 : .19)) + 'px Inter, sans-serif';
+  x.lineWidth = sz * .05; x.strokeStyle = lab ? '#3a0016' : '#fff7d6'; x.fillStyle = lab ? '#fff' : '#5a2a00'; x.strokeText(t, X, Y + sz * .02); x.fillText(t, X, Y + sz * .02); x.restore();
+}
+function drawHold(x) {
+  var H = scene.hw;
+  for (var r = 0; r < 3; r++) for (var c = 0; c < 5; c++) {
+    var x0 = c * cw, y0 = r * ch, cell = r * 5 + c, v = H.locked[cell], sz = Math.min(cw, ch) * .9;
+    x.fillStyle = (r + c) % 2 ? 'rgba(40,22,6,.86)' : 'rgba(30,16,4,.86)'; x.fillRect(x0 + 1, y0 + 1, cw - 2, ch - 2);
+    x.strokeStyle = 'rgba(255,200,80,.35)'; x.lineWidth = 1; x.strokeRect(x0 + 1.5, y0 + 1.5, cw - 3, ch - 3);
+    if (v !== undefined) {
+      var pop = H.pop[cell] ? 1 + .25 * Math.max(0, 1 - (performance.now() - H.pop[cell]) / 350) : 1;
+      x.save(); x.translate(x0 + cw / 2, y0 + ch / 2); x.scale(pop, pop); if (H.hot === cell) { x.shadowColor = '#fff'; x.shadowBlur = 28; } x.drawImage(SPR[COIN], -sz / 2, -sz / 2, sz, sz); x.restore();
+      if (H.paid[cell]) { x.globalAlpha = .6; x.fillStyle = '#fff'; x.font = '800 ' + Math.round(sz * .16) + 'px Inter'; x.textAlign = 'center'; x.fillText('PAID', x0 + cw / 2, y0 + ch / 2 + 4); x.globalAlpha = 1; }
+      else coinText(x, v, x0 + cw / 2, y0 + ch / 2, sz);
+    } else if (H.spinning) {
+      x.save(); x.beginPath(); x.rect(x0 + 2, y0 + 2, cw - 4, ch - 4); x.clip(); var t = performance.now() / 45 + c * 7 + r * 3;
+      for (var k = -1; k < 2; k++) { var yy = y0 + ((t % 1) + k) * ch; x.globalAlpha = .45; x.drawImage(SPRB[(Math.floor(t) + k + c + r) % 3 === 0 ? COIN : (5 + ((Math.floor(t) + k) & 3))], x0 + (cw - sz) / 2, yy + (ch - sz) / 2, sz, sz); }
+      x.restore(); x.globalAlpha = 1;
+    }
+  }
+}
+
+/* ---- motion ---- */
+function T() { var t = S.turbo; return { acc: t ? 80 : 200, min: t ? 200 : 600, stag: t ? 70 : 200, dec: t ? 220 : 480, vmax: t ? 56 : 38, tease: t ? 600 : 1400 }; }
+function loop(now) {
+  var act = false;
+  for (var c = 0; c < 5; c++) {
+    var R = reels[c], Ln = G.strips[c].length;
+    if (R.phase === 'acc') { act = true; var p = Math.min(1, Math.max(0, (now - R.t0) / T().acc)); R.v = T().vmax * p * p; R.pos -= R.v * .016; if (p >= 1) R.phase = 'full'; }
+    else if (R.phase === 'full') { act = true; R.v = T().vmax; R.pos -= R.v * .016; }
+    else if (R.phase === 'dec') { act = true; var q = Math.min(1, (now - R.t0) / R.dur), e = 1 - Math.pow(1 - q, 3), ov = Math.sin(q * Math.PI) * .16 * (1 - q), prev = R.pos;
+      R.pos = R.from - R.dist * e - ov; R.v = Math.abs(R.pos - prev) / .016; if (q >= 1) { R.pos = R.target; R.v = 0; R.phase = 'idle'; SND.stop(c); var cb = R.done; R.done = null; cb && cb(); } }
+    if (R.phase === 'acc' || R.phase === 'full') R.pos = ((R.pos % Ln) + Ln) % Ln;
+  }
+  if (act && now - lastTick > 70) { SND.tick(); lastTick = now; }
+  draw();
+  if (act || scene.winCells || scene.tease >= 0 || scene.hw || scene.sticky || scene.held || scene.expand) raf = requestAnimationFrame(loop); else raf = null;
+}
+function kick() { if (!raf) raf = requestAnimationFrame(loop); }
+function stopReel(c, stop) { return new Promise(function (res) { var R = reels[c], L = G.strips[c].length, extra = S.turbo ? 4 : 8, d = ((R.pos - stop) % L + L) % L; while (d < extra) d += L; R.from = R.pos; R.dist = d; R.target = stop; R.t0 = performance.now(); R.dur = T().dec; R.phase = 'dec'; R.done = res; }); }
+async function spinTo(grid, stops, held) {
+  var t = performance.now(); for (var c = 0; c < 5; c++) if (!held || !held[c]) { reels[c].phase = 'acc'; reels[c].t0 = t + c * 25; }
+  kick(); await sleep(T().min);
+  var pend = [], landed = 0, coinsSeen = 0;
+  for (var c2 = 0; c2 < 5; c2++) {
+    if (held && held[c2]) continue;
+    var before = 0, cb = 0; for (var cc = 0; cc < c2; cc++) for (var r = 0; r < 3; r++) { if (grid[r][cc] === SCAT) before++; if (grid[r][cc] === COIN) cb++; }
+    var tease = (G.fam.scat && c2 >= 2 && before >= 2) || (G.fam.coins && c2 >= 3 && cb >= 4);
+    if (tease && !S.stopReq) { await Promise.all(pend); scene.tease = c2; kick(); SND.tease(); await sleep(T().tease); }
+    (function (col) { var n = 0; for (var r2 = 0; r2 < 3; r2++) if (grid[r2][col] === SCAT) n++;
+      pend.push(stopReel(col, stops[col]).then(function () { if (scene.tease === col) scene.tease = -1; if (n) { landed += n; SND.scat(landed); } })); })(c2);
+    if (c2 < 4 && !S.stopReq) await sleep(T().stag);
+  }
+  await Promise.all(pend); scene.tease = -1;
+}
+
+/* ---- presentation ---- */
+function msg(t) { $('msg').textContent = t; }
+var LINECOL = ['#ff5c8a', '#4fd8ff', '#ffd34d', '#7dff9d', '#c88bff', '#ff9a4d', '#3de0ff', '#ff6ab8', '#c4ff4d', '#ffb3f0', '#7df9ff', '#ffe066', '#ff6b6b', '#8affc1', '#a98bff', '#ffa94d', '#4dd2ff', '#ff4fd8', '#d4ff5c', '#ffd6a5', '#6bffea', '#ff9de2', '#ffcf5c', '#9cff7d', '#ff7a7a'];
+function nameOf(code) { var n = entry.names || {}; var key = code === WILD ? 's18' : code === SCAT ? 's19' : 's' + (code < 10 ? '0' : '') + code; return code === COIN ? 'Coin' : (n[key] || ['J', '10', '9'][code - 8] || 'Symbol'); }
+function rollup(els, froms, tos, ms) { return new Promise(function (res) { var t0 = performance.now(), last = 0; (function f(now) { var p = Math.min(1, (now - t0) / ms), e = 1 - Math.pow(1 - p, 2); els.forEach(function (el, i) { el.textContent = money(froms[i] + (tos[i] - froms[i]) * e); }); if (now - last > 60 && p < 1) { SND.roll(); last = now; } if (p < 1) requestAnimationFrame(f); else res(); })(t0); }); }
+function overlay(html, ms, btn) { var o = $('ov'); o.innerHTML = html + (btn ? '<button class="go" id="ovGo">' + btn + '</button>' : ''); o.hidden = false;
+  return new Promise(function (res) { var done = function () { o.hidden = true; o.innerHTML = ''; res(); }; if (btn) { $('ovGo').onclick = function () { SND.click(); done(); }; $('ovGo').focus(); } if (ms) setTimeout(function () { if (!o.hidden) done(); }, ms); }); }
+function band(t, cls) { var b = $('band'); if (!t) { b.hidden = true; return; } b.hidden = false; b.className = 'band' + (cls ? ' ' + cls : ''); b.textContent = t; }
+
+var cycling = 0;
+async function showWins(wins, mult, credit) {
+  var k = G.k, items = [], amt = 0;
+  (wins || []).forEach(function (w) {
+    var a = r2(w.amt * k); amt += a;
+    var text = w.scatter ? w.n + ' × ' + nameOf(SCAT) : w.expand ? 'Expanding ' + nameOf(w.sym) + ' on ' + w.n + ' reels' : 'Line ' + (w.line + 1) + ': ' + w.n + ' × ' + nameOf(w.sym) + (w.wild && G.fam.wildDouble ? ' (wild ×2)' : '');
+    items.push({ cells: w.cells, path: w.path || null, color: w.scatter ? '#ff5cb0' : w.expand ? '#d7a6ff' : LINECOL[(w.line || 0) % 25], amt: a, text: text + ' pays ' + money(a) + (mult > 1 ? ' (×' + mult + ')' : '') });
+  });
+  amt = r2(amt);
+  if (!items.length) return 0;
+  var wc = {}; items.forEach(function (it) { (it.cells || []).forEach(function (q) { wc[q[0] * 5 + q[1]] = 1; }); }); scene.winCells = wc; kick();
+  var my = ++cycling; (async function () { var i = 0; while (cycling === my) { scene.item = items[i % items.length]; msg(scene.item.text); kick(); await sleep(S.turbo ? 450 : 900); i++; } })();
+  var x = amt / totalBet(), wm = $('winM').querySelector('b'), cur = parseMoney(wm.textContent);
+  if (credit) {
+    (x >= 3 ? SND.win : SND.small)(); if (x >= 5) burst(24, .8);
+    await rollup([wm, $('balM'), $('gBal')], [cur, S.bal, S.bal], [r2(cur + amt), r2(S.bal + amt), r2(S.bal + amt)], RM ? 150 : Math.min(1600, 300 + x * 110));
+    S.bal = r2(S.bal + amt);
+  }
+  return amt;
+}
+function parseMoney(t) { return +(t.replace(/[^0-9,−-]/g, '').replace(',', '.').replace('−', '-')) || 0; }
+function stopCycle() { cycling++; scene.item = null; scene.winCells = null; }
+
+async function bigBanner(amount) {
+  var x = amount / totalBet(); if (x < 15) return;
+  var lbl = x >= 100 ? 'EPIC WIN' : x >= 40 ? 'MEGA WIN' : 'BIG WIN', cls = x >= 100 ? 'epic' : x >= 40 ? 'mega' : '';
+  SND.big(); burst(x >= 40 ? 110 : 70, 1.15); var iv = setInterval(function () { burst(12, 1); }, 360);
+  var o = $('ov'); o.innerHTML = '<h2 class="' + cls + '">' + lbl + '</h2><div class="amt num" id="ovAmt">' + money(0) + '</div>'; o.hidden = false;
+  await rollup([$('ovAmt')], [0], [amount], RM ? 500 : Math.min(5000, 1500 + x * 22)); clearInterval(iv); await sleep(1200); o.hidden = true; o.innerHTML = '';
+}
+
+/* ---- particles ---- */
+var parts = [], fxOn = false;
+function burst(n, power) { for (var i = 0; i < n; i++) parts.push({ x: CW * (.1 + .8 * Math.random()), y: CH + 10, vx: (Math.random() - .5) * 6, vy: -(6 + Math.random() * 9) * (power || 1), r: 4 + Math.random() * 6, a: Math.random() * 6, va: (Math.random() - .5) * .4 }); if (!fxOn) { fxOn = true; requestAnimationFrame(fxLoop); } }
+function fxLoop() { var x = fxx; x.setTransform(DPR, 0, 0, DPR, 0, 0); x.clearRect(0, 0, CW, CH);
+  for (var i = parts.length - 1; i >= 0; i--) { var p = parts[i]; p.vy += .32; p.x += p.vx; p.y += p.vy; p.a += p.va; if (p.y > CH + 30 && p.vy > 0) { parts.splice(i, 1); continue; }
+    var w = Math.abs(Math.cos(p.a)) * p.r, g = x.createLinearGradient(p.x - w, 0, p.x + w, 0); g.addColorStop(0, '#a86a00'); g.addColorStop(.5, '#fff2a8'); g.addColorStop(1, '#c98a12'); x.fillStyle = g; x.beginPath(); x.ellipse(p.x, p.y, Math.max(1, w), p.r, 0, 0, 7); x.fill(); }
+  if (parts.length) requestAnimationFrame(fxLoop); else { fxOn = false; x.clearRect(0, 0, CW, CH); } }
+
+/* ---- hold & spin playback ---- */
+async function playHold(step) {
+  var TB = totalBet(), k = G.k;
+  SND.fs(); burst(40, .9);
+  await overlay('<h2>HOLD &amp; SPIN</h2><div class="amt">' + step.start.length + ' COINS</div><p>Coins lock in place. Every new coin resets the 3 respins. Fill all 15 spots for the GRAND.</p>', S.auto ? 2400 : 0, 'START');
+  var H = { locked: {}, pop: {}, paid: {}, spinning: false, hot: -1 };
+  step.start.forEach(function (p) { H.locked[p[0] * 5 + p[1]] = p[2]; H.pop[p[0] * 5 + p[1]] = performance.now(); });
+  stopCycle(); scene.hw = H; kick(); var count = step.start.length;
+  band('HOLD & SPIN · RESPINS ●●● · ' + count + ' / 15 COINS', 'hold'); await sleep(700);
+  for (var i = 0; i < step.respins.length; i++) {
+    var rs = step.respins[i]; H.spinning = true; kick(); await sleep(S.turbo ? 320 : 680); H.spinning = false;
+    rs.landed.forEach(function (l) { H.locked[l[0]] = l[1]; H.pop[l[0]] = performance.now(); SND.lock(); if (l[1] >= 20) burst(18, .8); });
+    if (!rs.landed.length) SND.heart();
+    count = rs.count; band('HOLD & SPIN · RESPINS ' + '●'.repeat(rs.left) + '○'.repeat(3 - rs.left) + ' · ' + count + ' / 15 COINS', 'hold'); kick(); await sleep(S.turbo ? 220 : 480);
+  }
+  msg('Collecting coins…');
+  var wm = $('winM').querySelector('b'), total = 0, cur = parseMoney(wm.textContent);
+  for (var cell = 0; cell < 15; cell++) { var v = H.locked[cell]; if (v === undefined) continue;
+    H.hot = cell; kick(); var amt = r2(v * TB * k);
+    if (v >= 20) { var jp = $('jp' + (v === 200 ? 1 : v === 50 ? 2 : 3)); jp && jp.classList.add('hit'); SND.big(); burst(30, 1); } else SND.win();
+    await rollup([wm, $('balM'), $('gBal')], [cur + total, S.bal + total, S.bal + total], [cur + total + amt, S.bal + total + amt, S.bal + total + amt], v >= 20 ? 1400 : (S.turbo ? 160 : 360));
+    total = r2(total + amt); H.paid[cell] = 1; H.hot = -1; kick(); }
+  if (step.grand) { var gA = r2(step.grand * TB * k); $('jp0') && $('jp0').classList.add('hit'); await bigBannerExact('GRAND JACKPOT', gA); total = r2(total + gA); $('winM').querySelector('b').textContent = money(cur + total); }
+  S.bal = r2(S.bal + total); paint();
+  await overlay('<h2>HOLD &amp; SPIN</h2><div class="amt num">' + money(total) + '</div><p>' + step.count + ' coins collected.</p>', S.auto ? 2600 : 0, 'COLLECT');
+  scene.hw = null; band(''); kick(); return total;
+}
+async function bigBannerExact(label, amount) { SND.big(); burst(140, 1.15); var o = $('ov'); o.innerHTML = '<h2 class="epic">' + label + '</h2><div class="amt num" id="ovAmt">' + money(0) + '</div>'; o.hidden = false; await rollup([$('ovAmt')], [0], [amount], RM ? 500 : 3500); await sleep(1200); o.hidden = true; o.innerHTML = ''; }
+
+/* ---- a full round ---- */
+async function play() {
+  if (S.busy || !PX) return;
+  var L = lines(), lb = lineBet(), TB = totalBet();
+  if (S.bal + 1e-9 < TB) { msg('Not enough balance for this bet. Lower the bet or press TOP UP.'); S.auto = 0; paint(); return; }
+  S.busy = true; S.stopReq = false; S.gambleAmt = 0; audio(); SND.coin(); stopCycle();
+  scene.held = null; scene.sticky = null; scene.expand = null; scene.coins = null; scene.dimAll = false; band('');
+  S.bal = r2(S.bal - TB); $('winM').querySelector('b').textContent = money(0); paint(); save();
+  var R = E.round(G, L, lb, rng, true), total = 0, fsMult = 1, fsTotal = 0, fsPlayed = 0, special = -1, k = G.k;
+  msg('Good luck!');
+  for (var i = 0; i < R.steps.length; i++) {
+    var st = R.steps[i];
+    if (st.kind === 'base' || st.kind === 'respin') {
+      var held = st.held || null, prevHeld = scene.held;
+      await spinTo(st.raw || st.grid, st.stops, prevHeld);
+      if (st.coins) { scene.coins = {}; st.coins.forEach(function (p) { scene.coins[p[0] * 5 + p[1]] = p[2]; }); kick(); }
+      if (held && held.some(Boolean)) {
+        var newly = held.filter(function (h, c) { return h && !(prevHeld && prevHeld[c]); }).length;
+        if (newly) { SND.fs(); burst(20, .7); scene.held = held.slice(); kick(); band('EXPANDING WILD · RESPIN ' + (st.kind === 'respin' ? '' : '') + '· ' + held.filter(Boolean).length + ' WILD REEL' + (held.filter(Boolean).length > 1 ? 'S' : ''), ''); await sleep(S.turbo ? 300 : 650); }
+      }
+      stopCycle();
+      var w = await showWins(st.wins, 1, true); total = r2(total + w);
+      if (!w && st.kind === 'base' && !R.feature) msg('No win. Spin again!');
+      if (st.kind === 'respin' || (held && held.some(Boolean) && i < R.steps.length - 1)) await sleep(S.turbo ? 300 : 700);
+    } else if (st.kind === 'hold') {
+      await sleep(400); var hwAmt = await playHold(st); total = r2(total + hwAmt);
+    } else if (st.kind === 'fsIntro') {
+      fsMult = st.mult; special = st.special; fsTotal = st.spins; await sleep(500); stopCycle(); SND.fs(); burst(40, .9);
+      var extra = special >= 0 ? '<p>Special expanding symbol:</p><canvas id="spCv" width="140" height="140" style="width:84px;height:84px;margin-top:6px"></canvas>' : '';
+      var ttl = G.family === 'fruit' ? 'WIN-TO-SPIN' : 'FREE SPINS';
+      var p1 = overlay('<h2>' + ttl + '</h2><div class="amt">' + st.spins + ' SPINS</div>' + (fsMult > 1 ? '<p>Every win pays ×' + fsMult + '.</p>' : '') + (G.fam.stickyFs ? '<p>Every wild that lands stays locked.</p>' : '') + extra, S.auto ? 2600 : 0, 'START');
+      if (special >= 0) { var spc = $('spCv'); if (spc) drawSymbol(spc.getContext('2d'), special, 140, G.id, G.family); }
+      await p1; fsPlayed = 0;
+    } else if (st.kind === 'free') {
+      fsPlayed = st.played; fsTotal = st.played + st.left;
+      band((G.family === 'fruit' ? 'WIN-TO-SPIN ' : 'FREE SPINS ') + fsPlayed + ' / ' + fsTotal + (fsMult > 1 ? ' · ×' + fsMult : '') + ' · ' + money(total));
+      scene.expand = null; await spinTo(st.grid, st.stops, null);
+      if (st.sticky && st.sticky.length) { var prevN = scene.sticky ? scene.sticky.length : 0; scene.sticky = st.sticky.slice(); if (st.sticky.length > prevN) { SND.lock(); } kick(); }
+      if (st.expand) { scene.expand = { sym: special, reels: st.expand.reels }; SND.fs(); kick(); await sleep(S.turbo ? 250 : 600); }
+      stopCycle();
+      var fw = await showWins(st.wins, fsMult, true); total = r2(total + fw);
+      band((G.family === 'fruit' ? 'WIN-TO-SPIN ' : 'FREE SPINS ') + fsPlayed + ' / ' + fsTotal + (fsMult > 1 ? ' · ×' + fsMult : '') + ' · ' + money(total));
+      if (st.add) { SND.fs(); msg('+' + st.add + ' free spin' + (st.add > 1 ? 's' : '') + '!'); }
+      await sleep(S.turbo ? 260 : 640);
+    } else if (st.kind === 'fsEnd') {
+      stopCycle(); scene.sticky = null; scene.expand = null; kick();
+      var fsWin = r2(st.amt * k); if (fsWin > 0) { SND.big(); burst(70, 1.05); }
+      await overlay('<h2>BONUS TOTAL</h2><div class="amt num">' + money(fsWin) + '</div><p>' + st.played + ' free spins played.</p>', S.auto ? 2600 : 0, 'COLLECT');
+      band('');
+    }
+  }
+  scene.held = null; band('');
+  await bigBanner(total);
+  if (total > 0) msg('You won ' + money(total) + (S.auto === 0 && total <= 2500 ? '. Press GAMBLE to risk it, or SPIN to keep it.' : '.'));
+  if (total > 0 && S.auto === 0 && total <= 2500) S.gambleAmt = total;
+  S.busy = false; paint(); save();
+  if (S.auto !== 0) { if (S.auto > 0) S.auto--; paint(); if (S.auto !== 0) { await sleep(S.turbo ? 250 : 600); if (S.auto !== 0 && !$('gameView').hidden) return play(); } }
+}
+
+/* ---- gamble ---- */
+async function gamble() {
+  if (S.gambleAmt <= 0 || S.busy) return;
+  S.busy = true; var amt = S.gambleAmt; S.gambleAmt = 0; paint(); stopCycle(); var o = $('ov');
+  for (var round = 0; round < 5 && amt > 0; round++) {
+    var pick = await new Promise(function (res) {
+      o.innerHTML = '<h2>GAMBLE</h2><div class="amt num" id="gAmt">' + money(amt) + '</div><p>Pick a colour to double it, or collect.</p><div class="card2" id="gCard">?</div>' +
+        '<div class="row"><button class="go red" id="gR">RED</button><button class="go black" id="gB">BLACK</button></div><button class="go" id="gC">COLLECT ' + money(amt) + '</button>';
+      o.hidden = false; $('gC').focus(); $('gR').onclick = function () { res('r'); }; $('gB').onclick = function () { res('b'); }; $('gC').onclick = function () { res('c'); };
+    });
+    if (pick === 'c') break;
+    ['gR', 'gB', 'gC'].forEach(function (id) { $(id).disabled = true; });
+    var res = rng(2) ? 'r' : 'b', card = $('gCard'); card.textContent = res === 'r' ? '♦' : '♣'; card.className = 'card2 ' + res; SND.roll(); await sleep(RM ? 300 : 750);
+    if (pick === res) { S.bal = r2(S.bal + amt); amt = r2(amt * 2); $('gAmt').textContent = money(amt); SND.win(); burst(20, .9); paint(); await sleep(RM ? 250 : 650); }
+    else { S.bal = r2(S.bal - amt); amt = 0; SND.heart(); paint(); o.innerHTML = '<h2>GAMBLE LOST</h2><p>That win is gone. Spin again!</p><button class="go" id="gOk">OK</button>'; await new Promise(function (r) { $('gOk').onclick = r; $('gOk').focus(); setTimeout(r, 1600); }); }
+    save();
+  }
+  o.hidden = true; o.innerHTML = ''; if (amt > 0) msg('Collected ' + money(amt) + '.');
+  S.busy = false; paint(); save();
+}
+
+/* ---- controls & paint ---- */
+function paint() {
+  if (!G) return;
+  var L = lines(); $('linV').textContent = L + ' / ' + G.maxLines; $('lbV').textContent = money(lineBet()); $('betM').textContent = money(totalBet());
+  $('balM').textContent = money(S.bal); $('gBal').textContent = money(S.bal); $('lobBal').textContent = money(S.bal);
+  $('betline').innerHTML = 'Playing <b>' + L + '</b> of ' + G.maxLines + ' lines × <b>' + money(lineBet()) + '</b> per line = total bet <b>' + money(totalBet()) + '</b>';
+  var lock = S.busy || S.auto !== 0;
+  ['linDn', 'linUp', 'lbDn', 'lbUp', 'maxBtn', 'back'].forEach(function (id) { $(id).disabled = lock; });
+  $('spinBtn').textContent = S.busy || S.auto ? 'STOP' : 'SPIN'; $('spinBtn').classList.toggle('stop', S.busy || S.auto !== 0);
+  $('autoBtn').textContent = S.auto === 0 ? 'AUTO' : S.auto < 0 ? 'AUTO ∞' : 'AUTO ' + S.auto; $('autoBtn').classList.toggle('on', S.auto !== 0);
+  $('turboBtn').classList.toggle('on', S.turbo); $('sndBtn').textContent = S.sound ? 'SOUND ON' : 'SOUND OFF';
+  var gb = $('gambleBtn'); gb.disabled = !(S.gambleAmt > 0) || S.busy; gb.classList.toggle('green', S.gambleAmt > 0 && !S.busy);
+  var jps = $('jps'); jps.hidden = !G.fam.coins;
+  if (G.fam.coins) { var TB = totalBet(), k = G.k; jps.innerHTML = [['GRAND', G.fam.grand], ['MAJOR', 200], ['MINOR', 50], ['MINI', 20]].map(function (j, i) { return '<div class="jp" id="jp' + i + '"><small>' + j[0] + '</small><b class="num">' + money(j[1] * TB * k) + '</b></div>'; }).join(''); }
+}
+$('spinBtn').onclick = function () { SND.click(); if (S.auto !== 0) { S.auto = 0; paint(); return; } if (S.busy) { S.stopReq = true; return; } if (S.gambleAmt > 0) { S.gambleAmt = 0; } play(); };
+$('linUp').onclick = function () { SND.click(); S.lines[G.id] = Math.min(G.maxLines, lines() + 1); paint(); save(); };
+$('linDn').onclick = function () { SND.click(); S.lines[G.id] = Math.max(1, lines() - 1); paint(); save(); };
+$('lbUp').onclick = function () { SND.click(); S.lbIdx = Math.min(LB.length - 1, S.lbIdx + 1); paint(); save(); };
+$('lbDn').onclick = function () { SND.click(); S.lbIdx = Math.max(0, S.lbIdx - 1); paint(); save(); };
+$('maxBtn').onclick = function () { SND.click(); S.lines[G.id] = G.maxLines; var i = LB.length - 1; while (i > 0 && LB[i] * G.maxLines > S.bal) i--; S.lbIdx = i; paint(); save(); play(); };
+var AUTOS = [10, 25, 50, 100, -1];
+$('autoBtn').onclick = function () { SND.click(); var i = AUTOS.indexOf(S.auto); S.auto = S.auto === 0 ? 10 : (i < AUTOS.length - 1 ? AUTOS[i + 1] : 0); S.gambleAmt = 0; paint(); if (S.auto !== 0 && !S.busy) play(); };
+$('turboBtn').onclick = function () { SND.click(); S.turbo = !S.turbo; paint(); save(); };
+$('sndBtn').onclick = function () { S.sound = !S.sound; if (S.sound) SND.click(); paint(); save(); };
+$('gambleBtn').onclick = function () { SND.click(); gamble(); };
+$('topBtn').onclick = function () { SND.click(); if (S.busy) return; if (S.bal >= 25000) { msg('Top-up is available when your balance is below R 25 000,00.'); return; } S.bal = 25000; paint(); save(); msg('Balance topped up to ' + money(25000) + '.'); };
+$('back').onclick = function () { SND.click(); if (S.busy) return; S.auto = 0; location.hash = ''; };
+document.addEventListener('keydown', function (e) { if (e.code === 'Space' && !$('gameView').hidden && $('rules').hidden && $('ov').hidden && $('gate').hidden && document.activeElement.tagName !== 'INPUT') { e.preventDefault(); $('spinBtn').click(); } });
+
+/* ---- rules sheet ---- */
+$('rulesBtn').onclick = function () {
+  SND.click(); var lb = lineBet(), L = lines(), TB = totalBet(), k = G.k, f = G.fam;
+  $('rTitle').textContent = entry.name + ' · Rules & pays';
+  var codes = f.nsym === 8 ? [0, 1, 2, 3, 4, 5, 6, 7] : [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+  var h = '<p><b>' + LABEL(G.family) + '.</b> ' + f.blurb + '</p><p>Choose 1 to ' + G.maxLines + ' lines and a bet per line. Total bet = lines × bet per line. Wins pay left to right on played lines; only the highest win per line pays. ' +
+    (f.wildReels.length ? 'WILD appears on reels 2, 3 and 4 and replaces every paying symbol.' + (f.wildDouble ? ' A win with a wild in it pays double.' : '') : f.bookWild ? 'The book replaces every paying symbol.' : 'There are no wilds.') + '</p>';
+  h += '<h4>Pays at ' + money(lb) + ' per line</h4><div class="pays">';
+  codes.forEach(function (c) { var p = G.pays[c], parts = []; for (var n = 5; n >= 2; n--) if (p[n - 2]) parts.push(n + ' = ' + money(p[n - 2] * lb * k)); h += '<div class="pay"><canvas data-s="' + c + '" width="120" height="120"></canvas><div><b>' + nameOf(c) + '</b>' + parts.join('<br>') + '</div></div>'; });
+  if (f.scat) h += '<div class="pay"><canvas data-s="' + SCAT + '" width="120" height="120"></canvas><div><b>' + (G.family === 'book' ? 'Book' : 'Scatter') + '</b>' + [5, 4, 3].map(function (n) { return n + ' anywhere = ' + money(f.scatPay[n] * TB * k); }).join('<br>') + '</div></div>';
+  if (f.wildReels.length) h += '<div class="pay"><canvas data-s="' + WILD + '" width="120" height="120"></canvas><div><b>Wild</b>Reels 2, 3, 4<br>Replaces paying symbols</div></div>';
+  if (f.coins) h += '<div class="pay"><canvas data-s="' + COIN + '" width="120" height="120"></canvas><div><b>Coin</b>6+ start Hold &amp; Spin<br>Values ' + money(k * TB) + ' to ' + money(200 * k * TB) + '</div></div>';
+  h += '</div>';
+  if (f.fs || f.chainCap || f.coins || f.expandRespin) h += '<h4>Feature</h4><p>' + f.blurb + (f.fs ? ' Free spins use the bet that triggered them and cost nothing.' + (f.retrig ? ' 3 or more ' + (G.family === 'book' ? 'books' : 'scatters') + ' during free spins add ' + f.retrig + ' more.' : '') : '') + (f.coins ? ' Coin values: MINI ' + money(20 * k * TB) + ', MINOR ' + money(50 * k * TB) + ', MAJOR ' + money(200 * k * TB) + ', GRAND ' + money(f.grand * k * TB) + ' at this bet.' : '') + '</p>';
+  h += '<p>Gamble: after a win you can press GAMBLE and pick red or black to double it (up to 5 times), or collect. The draw is a fair 50/50, so it does not change the payout rate.</p>';
+  h += '<h4>The ' + G.maxLines + ' lines</h4><div class="lines" id="linesG"></div>';
+  $('rBody').innerHTML = h;
+  $('rBody').querySelectorAll('canvas[data-s]').forEach(function (c) { drawSymbol(c.getContext('2d'), +c.dataset.s, 120, G.id, G.family); });
+  var lg = $('linesG'); lg.innerHTML = E.LINES.slice(0, G.maxLines).map(function (l, i) { return '<canvas width="100" height="66" data-l="' + i + '"></canvas>'; }).join('');
+  lg.querySelectorAll('canvas').forEach(function (c) { var x = c.getContext('2d'), li = +c.dataset.l, ln = E.LINES[li]; x.fillStyle = '#140e2c'; x.fillRect(0, 0, 100, 66); x.fillStyle = 'rgba(255,255,255,.12)';
+    for (var cc = 0; cc < 5; cc++) for (var r = 0; r < 3; r++) x.fillRect(4 + cc * 19, 4 + r * 20, 16, 17); x.strokeStyle = li < L ? LINECOL[li] : 'rgba(255,255,255,.25)'; x.lineWidth = 3; x.beginPath();
+    for (var q = 0; q < 5; q++) { var px = 12 + q * 19, py = 12 + ln[q] * 20; q ? x.lineTo(px, py) : x.moveTo(px, py); } x.stroke(); x.fillStyle = '#fff'; x.font = '700 12px Inter, sans-serif'; x.fillText(li + 1, 84, 62); });
+  var st = entry;
+  $('rStats').innerHTML = [['Payout rate at ' + G.maxLines + ' lines', (st.rtp * 100).toFixed(1) + '%'], ['Payout rate at 1 line', (st.rtp1 * 100).toFixed(1) + '%'], ['Spins that pay something', Math.round(st.hit * 100) + '%'],
+    [G.fam.expandRespin ? 'Wild respins' : G.fam.coins ? 'Hold & Spin' : 'Free spins', st.feat ? 'about 1 in ' + Math.round(1 / st.feat) + ' spins' : '—'], ['Wins of 20× bet or more', st.big ? 'about 1 in ' + Math.round(1 / st.big) : '—'], ['Volatility', entry.volatility]]
+    .map(function (r) { return '<tr><td>' + r[0] + '</td><td>' + r[1] + '</td></tr>'; }).join('');
+  $('simOut').textContent = ''; $('rules').hidden = false; $('rClose').focus();
+};
+$('rClose').onclick = function () { SND.click(); $('rules').hidden = true; };
+$('simBtn').onclick = function () {
+  var btn = this, N = 100000, done = 0, bet = 0, ret = 0, hits = 0, feat = 0, L = G.maxLines, r = E.mulberry((Date.now() ^ (Math.random() * 1e9)) >>> 0), q = function (n) { return Math.floor(r() * n); };
+  btn.disabled = true;
+  (function chunk() { var end = Math.min(N, done + 5000); for (; done < end; done++) { var o = E.round(G, L, 1, q, false); bet += L; ret += o.units * G.k; if (o.units > 0) hits++; if (o.feature) feat++; }
+    $('simOut').textContent = 'Spun ' + done.toLocaleString('en-ZA') + ' times · paid back ' + (ret / bet * 100).toFixed(1) + '%';
+    if (done < N) setTimeout(chunk, 0); else { $('simOut').textContent = '100,000 spins at ' + L + ' lines: paid back ' + (ret / bet * 100).toFixed(1) + '% · ' + Math.round(hits / N * 100) + '% of spins paid · feature ' + feat + ' times. Short runs swing around the long-run rate.'; btn.disabled = false; } })();
+};
+
+/* ---- age gate & boot ---- */
+$('gateYes').onclick = function () { S.age = true; save(); $('gate').hidden = true; };
+$('gateNo').onclick = function () { $('gateMsg').textContent = 'SpinRush is for adults only. Please come back when you are 18.'; };
+heroShow(0); renderLobby();
+if (!S.age) $('gate').hidden = false;
+route();
+if (location.hash === '#selftest') window.__sr = { S: S, open: openGame, play: play, gamble: gamble, G: function () { return G; } };
+})();
+</script>
