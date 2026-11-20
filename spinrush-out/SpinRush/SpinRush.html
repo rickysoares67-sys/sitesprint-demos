@@ -123,6 +123,14 @@ button:disabled{opacity:.45;cursor:not-allowed}
 .ov .amt{font-family:var(--f-num);font-size:clamp(28px,9vw,48px);color:#fff;margin-top:10px;font-variant-numeric:tabular-nums;text-shadow:0 0 18px rgba(255,255,255,.6)}
 .ov p{max-width:34ch;font-size:17px;margin:10px 0 0}
 .ov .go{margin-top:16px;padding:12px 26px;border-radius:30px;border:0;font-family:var(--f-num);font-size:15px;color:#2a0b00;background:linear-gradient(180deg,#fff2b0,#ffc53d)}
+.gcard{width:96px;height:132px;margin:14px auto 4px;border-radius:12px;display:grid;place-items:center;font-size:54px;color:#fff;background:linear-gradient(160deg,#2a3348,#121826);border:2px solid var(--chrome);box-shadow:0 10px 30px rgba(0,0,0,.6)}
+.gcard.red{background:linear-gradient(160deg,#ff4d6a,#9c0f29);color:#fff}
+.gcard.black{background:linear-gradient(160deg,#2b3242,#06080e);color:#fff}
+.gcard.flip{animation:gflip .45s ease}
+@keyframes gflip{0%{transform:rotateY(90deg) scale(.8)}100%{transform:rotateY(0) scale(1)}}
+.growrow{display:flex;gap:12px;justify-content:center;margin-top:12px}
+.ov .go.gred{background:linear-gradient(180deg,#ff8098,#c0102e);color:#fff}
+.ov .go.gblk{background:linear-gradient(180deg,#444c5e,#0a0d14);color:#fff;border:1px solid #5a6474}
 @keyframes pop{from{transform:scale(.2);opacity:0}}
 
 .pt{position:fixed;inset:0;z-index:50;background:rgba(4,1,6,.88);display:flex;justify-content:center;align-items:flex-start;overflow:auto;
@@ -180,9 +188,14 @@ button:disabled{opacity:.45;cursor:not-allowed}
   <div class="msg" id="msg" aria-live="polite">Press SPIN or the space bar. Good luck!</div>
   <div class="deck">
     <div class="side">
+      <div class="betbox" id="linesBox" hidden>
+        <button id="linesDn" aria-label="Fewer lines">−</button>
+        <div><small>LINES</small><b id="linesBv">25</b></div>
+        <button id="linesUp" aria-label="More lines">+</button>
+      </div>
       <div class="betbox">
         <button id="betDn" aria-label="Lower bet">−</button>
-        <div><small id="betLbl">BET LEVEL</small><b id="lineB">1</b></div>
+        <div><small id="betLbl">BET / LINE</small><b id="lineB">1</b></div>
         <button id="betUp" aria-label="Raise bet">+</button>
       </div>
       <button class="chip max" id="maxBtn">MAX BET</button>
@@ -196,6 +209,7 @@ button:disabled{opacity:.45;cursor:not-allowed}
   <div class="util">
     <button class="chip" id="ptBtn">PAYTABLE</button>
     <button class="chip" id="betOneBtn" hidden>BET ONE</button>
+    <button class="chip" id="gambleBtn" hidden>GAMBLE</button>
     <button class="chip" id="sndBtn">SOUND ON</button>
     <button class="chip" id="refillBtn">TOP UP</button>
   </div>
@@ -231,7 +245,7 @@ function rr(x,c,y,w,h,r){x.beginPath();x.moveTo(c+r,y);x.arcTo(c+w,y,c+w,y+h,r);
 function mulberry(a){return function(){a|=0;a=a+0x6D2B79F5|0;var t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
 
 /* =============================== SOUND =============================== */
-var S={credits:25000,game:'neon',lvl:{neon:0,classic:0,gold:0},coins:3,turbo:false,auto:0,sound:true,busy:false,stopReq:false,
+var S={credits:25000,game:'neon',lines:25,gambleAmt:0,lvl:{neon:0,classic:0,gold:0},coins:3,turbo:false,auto:0,sound:true,busy:false,stopReq:false,
   fsLeft:0,fsTotal:0,fsWon:0,feature:false};
 var AC=null,master=null;
 function audio(){if(!S.sound)return null;if(!AC){try{AC=new(window.AudioContext||window.webkitAudioContext)();master=AC.createGain();master.gain.value=.55;master.connect(AC.destination)}catch(e){return null}}
@@ -326,32 +340,32 @@ var ART={
 
 /* =============================== GAMES =============================== */
 var BETLV=[1,2,5,10,20,50,100]; // bet units; total = unit x 25 for the video games
-var NEON={id:'neon',title:'Neon Sevens',tag:'25 LINES · FREE SPINS · FREE PLAY',cols:5,rows:3,nsym:9,
+var NEON={id:'neon',title:'Neon Sevens',tag:'UP TO 25 LINES · GAMBLE · FREE PLAY',cols:5,rows:3,nsym:9,lineSteps:[1,5,10,15,20,25],
   strips:[[6,7,1,4,2,6,4,7,5,6,7,6,2,3,5,5,1,5,7,3,5,7,4,7,7,6,6,3,4,5,6,4,8,5,7,3,0,7,2,6],[6,3,7,7,6,1,7,5,3,8,7,5,4,5,1,5,2,7,0,5,6,6,4,2,4,7,6,5,2,0,7,3,3,6,6,5,4,4,6,7],[6,7,3,6,2,2,7,6,4,1,4,3,6,5,7,3,7,2,0,7,7,6,5,3,5,6,4,7,5,5,7,6,6,1,0,5,8,4,4,5],[7,7,1,3,6,7,6,5,1,7,6,7,6,4,3,6,6,5,5,0,6,4,4,5,3,3,5,0,7,7,2,6,8,4,5,2,2,4,7,5],[4,7,8,5,4,4,7,5,7,4,3,5,6,2,3,6,6,3,4,7,7,5,5,2,6,7,7,6,5,5,7,2,1,6,6,3,1,0,7,6]],
   names:['WILD','SEVEN','DIAMOND','BELL','BAR','CHERRY','GRAPE','LEMON','BONUS'],
   pay:[[50,250,2500],[40,160,1000],[25,100,500],[15,60,250],[10,40,150],[6,22,110],[5,18,90],[5,14,70]],
   scat:{3:5,4:20,5:100},fs:{3:10,4:15,5:25},fsMult:3,
   lines:[[1,1,1,1,1],[0,0,0,0,0],[2,2,2,2,2],[0,1,2,1,0],[2,1,0,1,2],[0,0,1,0,0],[2,2,1,2,2],[1,2,2,2,1],[1,0,0,0,1],[1,0,1,0,1],[1,2,1,2,1],[0,1,0,1,0],[2,1,2,1,2],[1,1,0,1,1],[1,1,2,1,1],[0,1,1,1,0],[2,1,1,1,2],[0,2,0,2,0],[2,0,2,0,2],[0,0,2,0,0],[2,2,0,2,2],[0,2,2,2,0],[2,0,0,0,2],[1,0,2,0,1],[1,2,0,2,1]],
   stats:[['Payout rate','84.3%'],['Spins that pay something','57%'],['Free spins','about 1 in 269 spins'],['MINI · MINOR · MAJOR','1 in 760 · 2,056 · 7,211'],['GRAND (5 WILD on a line)','1 in 512,000']],
-  unit:function(){return BETLV[S.lvl.neon]},bet:function(){return this.unit()*25},
-  betLabel:'LEVEL',betShow:function(){return this.unit()},
+  unit:function(){return BETLV[S.lvl.neon]},bet:function(){return this.unit()*S.lines},
+  betLabel:'BET / LINE',betShow:function(){return this.unit()},
   ladder:function(){var u=this.unit();return[['GRAND',2500*u,'5 WILD'],['MAJOR',1000*u,'5 SEVENS'],['MINOR',500*u,'5 DIAMONDS'],['MINI',250*u,'5 BELLS']]},
-  evaluate:function(g,u){var self=this,items=[],tot=0,sc=0,scCells=[],jp=-1;
+  evaluate:function(g,u,nLines){var self=this,items=[],tot=0,sc=0,scCells=[],jp=-1,NL=nLines||25;
     for(var r=0;r<3;r++)for(var c=0;c<5;c++)if(g[r][c]===8){sc++;scCells.push([r,c])}
-    this.lines.forEach(function(ln,li){var seq=ln.map(function(row,c){return g[row][c]});var wl=0;while(wl<5&&seq[wl]===0)wl++;
+    this.lines.forEach(function(ln,li){if(li>=NL)return;var seq=ln.map(function(row,c){return g[row][c]});var wl=0;while(wl<5&&seq[wl]===0)wl++;
       var best=0,bs=-1,bc=0;if(wl>=3){best=self.pay[0][wl-3];bs=0;bc=wl}
       var base=-1;for(var k=0;k<5;k++)if(seq[k]!==0){base=seq[k];break}
       if(base>=0&&base!==8){var n=0;while(n<5&&(seq[n]===0||seq[n]===base))n++;if(n>=3&&self.pay[base][n-3]>best){best=self.pay[base][n-3];bs=base;bc=n}}
       if(best>0){tot+=best;if(bc===5&&bs<=3&&(jp<0||bs<jp))jp=bs;
         items.push({cells:ln.slice(0,bc).map(function(row,c){return[row,c]}),path:ln,color:LINECOL[li],amt:best*u,
           text:'Line '+(li+1)+': '+bc+' × '+self.names[bs]})}});
-    var n5=Math.min(sc,5),scPay=(this.scat[n5]||0)*u*25;
+    var n5=Math.min(sc,5),scPay=(this.scat[n5]||0)*u*NL;
     if(scPay){items.push({cells:scCells,color:'#ff2d78',amt:scPay,text:sc+' BONUS stars'})}
     return{items:items,win:tot*u+scPay,fs:this.fs[n5]||0,jp:jp,scatter:8};},
   simOne:function(){var g=gridOf(this,randStops(this)),r=this.evaluate(g,1),w=r.win,f=r.fs;while(f>0){f--;var r2=this.evaluate(gridOf(this,randStops(this)),1);w+=r2.win*this.fsMult;f+=r2.fs}return{w:w,bet:25,feat:r.fs>0}},
-  paytable:function(){var h='<p>Wins pay left to right on 25 lines, times your bet level. WILD replaces every symbol except BONUS.</p><h4>SYMBOLS</h4><div class="pays">';
+  paytable:function(){var h='<p>Wins pay left to right on the lines you play (choose 1 to 25), times your bet per line. Total bet = lines × bet per line. WILD replaces every symbol except BONUS.</p><h4>SYMBOLS</h4><div class="pays">';
     for(var s=0;s<9;s++)h+='<div class="pay"><canvas data-s="'+s+'" width="104" height="104"></canvas><div><b>'+this.names[s]+'</b><br>'+(s===8?'3 · 4 · 5 anywhere<br>5× · 20× · 100× total bet':'5 = '+fmt(this.pay[s][2])+'<br>4 = '+this.pay[s][1]+' · 3 = '+this.pay[s][0])+'</div></div>';
-    return h+'</div><h4>FREE SPINS</h4><p>3, 4 or 5 BONUS stars award 10, 15 or 25 free spins. Every free-spin win pays <b>triple</b>, and free spins can retrigger.</p><h4>JACKPOTS</h4><p>5 WILD, 5 SEVENS, 5 DIAMONDS or 5 BELLS on a line. They grow with your bet level.</p><h4>THE 25 LINES</h4><div class="lines" id="linesG"></div>'}
+    return h+'</div><h4>FREE SPINS</h4><p>3, 4 or 5 BONUS stars award 10, 15 or 25 free spins. Every free-spin win pays <b>triple</b>, and free spins can retrigger.</p><h4>JACKPOTS</h4><p>5 WILD, 5 SEVENS, 5 DIAMONDS or 5 BELLS on a line. They grow with your bet level.</p><h4>GAMBLE</h4><p>After any win you can press GAMBLE and pick RED or BLACK. Guess right and the win doubles (up to 5 times); guess wrong and you lose that win. The draw is a fair 50/50, so it does not change the payout rate.</p><h4>THE 25 LINES</h4><div class="lines" id="linesG"></div>'}
 };
 var LINECOL=['#ff2d78','#28e6ff','#ffd34d','#5cff9d','#c77dff','#ff8a3d','#3dd6ff','#ff5ca8','#b6ff3d','#ffb3f0','#7df9ff','#ffe066','#ff6b6b','#8affc1','#a98bff','#ffa94d','#4dd2ff','#ff4fd8','#d4ff5c','#ffd6a5','#6bffea','#ff9de2','#ffcf5c','#9cff7d','#ff7a7a'];
 
@@ -423,8 +437,8 @@ function gridOf(gm,st){var g=[];for(var r=0;r<gm.rows;r++){g.push([]);for(var c=
 
 /* =============================== SAVE =============================== */
 try{var sv=JSON.parse(localStorage.getItem('spinrush-v2')||'null');if(sv&&isFinite(sv.credits)){S.credits=Math.max(0,Math.floor(sv.credits));S.sound=sv.sound!==false;S.turbo=!!sv.turbo;
-  if(sv.lvl)for(var k in S.lvl)S.lvl[k]=Math.max(0,sv.lvl[k]|0);if(sv.coins)S.coins=Math.min(3,Math.max(1,sv.coins|0));if(GAMES[sv.game])S.game=sv.game}}catch(e){}
-function save(){try{localStorage.setItem('spinrush-v2',JSON.stringify({credits:S.credits,sound:S.sound,turbo:S.turbo,lvl:S.lvl,coins:S.coins,game:S.game}))}catch(e){}}
+  if(sv.lvl)for(var k in S.lvl)S.lvl[k]=Math.max(0,sv.lvl[k]|0);if(sv.coins)S.coins=Math.min(3,Math.max(1,sv.coins|0));if(GAMES[sv.game])S.game=sv.game;if([1,5,10,15,20,25].indexOf(sv.lines|0)>=0)S.lines=sv.lines|0}}catch(e){}
+function save(){try{localStorage.setItem('spinrush-v2',JSON.stringify({credits:S.credits,sound:S.sound,turbo:S.turbo,lvl:S.lvl,coins:S.coins,game:S.game,lines:S.lines}))}catch(e){}}
 
 /* =============================== RENDERER =============================== */
 var cv=$('reels'),cx=cv.getContext('2d'),fx=$('fx'),fxx=fx.getContext('2d'),DPR=1,CW=0,CH=0,cw=0,ch=0,SPR=[],SPRB=[],CELL=0;
@@ -521,12 +535,13 @@ function paintLadder(){var L=G.ladder();$('jps').innerHTML=L.map(function(l,i){r
 function paint(){
   $('credM').textContent=fmt(S.credits);$('betM').textContent=fmt(G.bet());$('lineB').textContent=fmt(G.betShow());$('betLbl').textContent=G.betLabel;
   paintLadder();
-  $('coinhint').textContent=G.classic?('COINS: '+'●'.repeat(S.coins)+'○'.repeat(3-S.coins)+(S.coins<3?'   BET 3 FOR THE 5,000 BONUS':'   MAX COIN BONUS ON')):'';
-  $('betOneBtn').hidden=!G.classic;$('maxBtn').textContent=G.classic?'BET MAX':'MAX BET';
+  $('coinhint').textContent=G.classic?('COINS: '+'●'.repeat(S.coins)+'○'.repeat(3-S.coins)+(S.coins<3?'   BET 3 FOR THE 5,000 BONUS':'   MAX COIN BONUS ON')):(G.id==='neon'?('PLAYING '+S.lines+' OF 25 LINES   ·   TOTAL BET '+fmt(G.bet())+' CREDITS'):'');
+  $('betOneBtn').hidden=!G.classic;$('linesBox').hidden=G.id!=='neon';if(G.id==='neon')$('linesBv').textContent=S.lines;$('maxBtn').textContent=G.classic?'BET MAX':'MAX BET';
+  $('gambleBtn').hidden=!(S.gambleAmt>0);$('gambleBtn').classList.toggle('on',S.gambleAmt>0);
   $('turboBtn').classList.toggle('on',S.turbo);$('sndBtn').textContent=S.sound?'SOUND ON':'SOUND OFF';
   $('autoBtn').classList.toggle('on',S.auto!==0);$('autoBtn').textContent=S.auto===0?'AUTO':(S.auto<0?'AUTO ∞':'AUTO '+S.auto);
   var sp=$('spinBtn');sp.textContent=S.fsLeft>0?'FREE':(S.busy||S.auto?'STOP':'SPIN');sp.classList.toggle('stop',(S.busy||S.auto!==0)&&S.fsLeft===0&&!S.feature);
-  var lock=S.busy||S.fsLeft>0||S.auto!==0||S.feature;['betDn','betUp','maxBtn','betOneBtn'].forEach(function(id){$(id).disabled=lock});
+  var lock=S.busy||S.fsLeft>0||S.auto!==0||S.feature;['betDn','betUp','maxBtn','betOneBtn','linesDn','linesUp'].forEach(function(id){$(id).disabled=lock});$('gambleBtn').disabled=S.busy||S.feature;
   document.querySelectorAll('.gbtn').forEach(function(b){b.classList.toggle('on',b.dataset.g===G.id);b.disabled=lock&&b.dataset.g!==G.id});
   var band=$('band');if(S.fsLeft>0||$('cab').classList.contains('free')){band.hidden=false;band.textContent='FREE SPINS '+(S.fsTotal-S.fsLeft)+' / '+S.fsTotal+' · WINS ×3 · '+fmt(S.fsWon)}
   else if(HW){band.hidden=false;band.textContent='HOLD & WIN · RESPINS '+'●'.repeat(HW.spins)+'○'.repeat(3-HW.spins)+' · '+HW.count+' / 15 COINS'}else band.hidden=true}
@@ -594,7 +609,7 @@ async function play(){
   S.busy=true;S.stopReq=false;audio();
   if(!free){S.credits-=bet;SND.coin()}else S.fsLeft--;
   $('winM').querySelector('b').textContent='0';msg(free?'Free spin '+(S.fsTotal-S.fsLeft)+' of '+S.fsTotal+'…':'Good luck!');paint();save();
-  var out=await spinReels(),res=G.evaluate(out.g,G.unit(),out.stops),mult=free?NEON.fsMult:1;
+  var out=await spinReels(),res=G.evaluate(out.g,G.unit(),G.id==='gold'?out.stops:(G.id==='neon'?S.lines:undefined)),mult=free?NEON.fsMult:1;
   var won=await present(res,mult);
   if(free)S.fsWon+=won;
   if(!won&&!res.hw)msg(free?'No win this spin.':(G.classic?'No win. Pull again!':'No win. Spin again!'));
@@ -607,20 +622,54 @@ async function play(){
   if(S.fsLeft>0){await sleep(S.turbo?250:550);return play()}
   if($('cab').classList.contains('free')){$('cab').classList.remove('free');paint();if(S.fsWon>0){SND.big();burst(80,1.1)}
     await overlay('<h2>BONUS TOTAL</h2><div class="amt">'+fmt(S.fsWon)+'</div><p>'+S.fsTotal+' free spins played.</p>',S.auto?3000:0,'COLLECT');msg('Free spins paid '+fmt(S.fsWon)+' credits.')}
+  if(won>0&&!free&&!res.hw&&!res.fs&&S.auto===0&&won<=5000){S.gambleAmt=won;msg('You won '+fmt(won)+'. Press GAMBLE to risk it, or SPIN to keep it.')}
   if(S.auto!==0){if(S.auto>0)S.auto--;paint();if(S.auto!==0){await sleep(S.turbo?200:500);if(S.auto!==0)return play()}}
   paint();save()}
 
 /* ---------- switching games ---------- */
-function setGame(id){if(S.busy||S.feature||S.fsLeft>0)return;G=GAMES[id];S.game=id;var cab=$('cab');cab.classList.remove('neon','classic','gold');cab.classList.add(id);
+function setGame(id){if(S.busy||S.feature||S.fsLeft>0)return;S.gambleAmt=0;G=GAMES[id];S.game=id;var cab=$('cab');cab.classList.remove('neon','classic','gold');cab.classList.add(id);
   $('logo').textContent=G.title;$('tag').textContent=G.tag;setupReels();CELL=0;winCells=null;showItem=null;
   if(G.prepare)G.prepare();msg(id==='classic'?'Bet up to 3 coins. Only the red centre line pays.':id==='gold'?'6 gold coins start HOLD & WIN.':'3 BONUS stars start FREE SPINS.');
   $('winM').querySelector('b').textContent='0';requestAnimationFrame(function(){resize();paint();kick()});save()}
 
+/* ---------- gamble (red / black double-up, fair 50/50) ---------- */
+async function gamble(){
+  if(S.gambleAmt<=0||S.busy||S.feature)return;
+  S.busy=true;var amt=S.gambleAmt;S.gambleAmt=0;paint();var o=$('ov');
+  for(var round=0;round<5&&amt>0&&amt<=100000;round++){
+    var choice=await new Promise(function(res){
+      o.innerHTML='<h2>GAMBLE</h2><div class="amt" id="gAmt">'+fmt(amt)+'</div>'
+        +'<p>Pick a colour to double your win, or collect it.</p>'
+        +'<div class="gcard" id="gcard">?</div>'
+        +'<div class="growrow"><button class="go gred" id="gRed">RED</button><button class="go gblk" id="gBlk">BLACK</button></div>'
+        +'<button class="go" id="gCol">COLLECT '+fmt(amt)+'</button>';
+      o.hidden=false;$('gCol').focus();
+      $('gRed').onclick=function(){res('red')};$('gBlk').onclick=function(){res('black')};$('gCol').onclick=function(){res('collect')};
+    });
+    if(choice==='collect')break;
+    var result=rnd(2)===0?'red':'black';
+    ['gRed','gBlk','gCol'].forEach(function(id){$(id).disabled=true});
+    var card=$('gcard');card.textContent=result==='red'?'\u2666':'\u2663';card.className='gcard '+result+' flip';
+    SND.roll();await sleep(RM?300:750);
+    if(choice===result){S.credits+=amt;amt*=2;$('credM').textContent=fmt(S.credits);$('gAmt').textContent=fmt(amt);SND.win();burst(22,.9);await sleep(RM?250:650)}
+    else{S.credits-=amt;amt=0;$('credM').textContent=fmt(S.credits);SND.heart();
+      o.innerHTML='<h2 class="">GAMBLE LOST</h2><p>The win is gone. Spin again!</p><button class="go" id="gOk">OK</button>';
+      await new Promise(function(r){$('gOk').onclick=r;$('gOk').focus();setTimeout(r,1600)})}
+    save();
+  }
+  o.hidden=true;o.innerHTML='';
+  if(amt>0){msg('Collected '+fmt(amt)+' credits.');if(amt>=S.gambleAmt)burst(16,.7)}
+  S.busy=false;paint();save();
+}
+
 /* controls */
-$('spinBtn').onclick=function(){SND.click();if(S.feature)return;if(S.auto!==0&&S.fsLeft===0){S.auto=0;paint();return}if(S.busy){S.stopReq=true;return}play()};
+$('spinBtn').onclick=function(){SND.click();if(S.feature)return;if(S.gambleAmt>0&&!S.busy){S.gambleAmt=0;paint()}if(S.auto!==0&&S.fsLeft===0){S.auto=0;paint();return}if(S.busy){S.stopReq=true;return}play()};
+$('linesUp').onclick=function(){SND.click();var st=NEON.lineSteps,i=st.indexOf(S.lines);S.lines=i<0?25:st[Math.min(st.length-1,i+1)];paint();save()};
+$('linesDn').onclick=function(){SND.click();var st=NEON.lineSteps,i=st.indexOf(S.lines);S.lines=i<0?st[0]:st[Math.max(0,i-1)];paint();save()};
+$('gambleBtn').onclick=function(){SND.click();gamble()};
 $('betUp').onclick=function(){SND.click();var max=G.classic?G.denoms.length-1:BETLV.length-1;if(S.lvl[G.id]<max)S.lvl[G.id]++;paint();save()};
 $('betDn').onclick=function(){SND.click();if(S.lvl[G.id]>0)S.lvl[G.id]--;paint();save()};
-$('maxBtn').onclick=function(){SND.click();if(G.classic){S.coins=3}else{var i=BETLV.length-1;while(i>0&&BETLV[i]*25>S.credits)i--;S.lvl[G.id]=i}paint();save();play()};
+$('maxBtn').onclick=function(){SND.click();if(G.classic){S.coins=3}else{if(G.id==='neon')S.lines=25;var i=BETLV.length-1;while(i>0&&BETLV[i]*25>S.credits)i--;S.lvl[G.id]=i}paint();save();play()};
 $('betOneBtn').onclick=function(){SND.coin();S.coins=S.coins%3+1;paint();save()};
 var AUTOS=[10,25,50,100,-1];
 $('autoBtn').onclick=function(){SND.click();if(S.fsLeft>0||S.feature)return;var i=AUTOS.indexOf(S.auto);S.auto=S.auto===0?10:(i<AUTOS.length-1?AUTOS[i+1]:0);paint();if(S.auto!==0&&!S.busy)play()};
@@ -650,7 +699,9 @@ new ResizeObserver(function(){resize()}).observe($('win'));
 function boot(){setGame(S.game)}
 if(location.hash==='#selftest')window.__sr={hw:function(n){setGame('gold');GOLD.prepare();var c=[];for(var i=0;i<n;i++)c.push([i%3,Math.floor(i/3),pickW(GOLD.coinV,GOLD.coinW)]);return holdAndWin(c)},
   game:setGame,exact:function(){var st=CLASSIC.strips,t={1:0,3:0},n=0;for(var a=0;a<st[0].length;a++)for(var b=0;b<st[1].length;b++)for(var c=0;c<st[2].length;c++){var l=[st[0][a],st[1][b],st[2][c]];t[1]+=CLASSIC.pay(l,1).v;t[3]+=CLASSIC.pay(l,3).v/3;n++}return[t[1]/n,t[3]/n,st.map(function(s){return s.length})]},
-  state:function(){return{credits:S.credits,busy:S.busy,feature:S.feature,game:G.id}}};
+  setLines:function(n){S.lines=n;paint()},bet:function(){return G.bet()},
+  gamble:function(a){S.gambleAmt=a;return gamble()},
+  state:function(){return{credits:S.credits,busy:S.busy,feature:S.feature,game:G.id,lines:S.lines,bet:G.bet(),gambleAmt:S.gambleAmt}}};
 if(document.fonts&&document.fonts.load)Promise.all([document.fonts.load('400 40px Bungee'),document.fonts.load('400 40px Monoton'),document.fonts.load('400 40px Rye')]).then(boot,boot);else boot();
 })();
 </script>
