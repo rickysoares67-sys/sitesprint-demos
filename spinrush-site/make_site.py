@@ -22,4 +22,14 @@ for key, val in (('/*ENGINE*/', open('engine.js', encoding='utf-8').read()), ('/
     assert ui.count(key) == 1, key
     ui = ui.replace(key, val)
 open('index.html', 'w', encoding='utf-8').write(ui)
+# Standalone page for the ChatGPT-hosted site: full document, artwork from the site's own /static/assets/.
+head = ('<!doctype html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n'
+        '<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">\n'
+        '<style>[hidden]{display:none!important}:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}</style>\n'
+        '<script>window.SPINRUSH_ASSET_BASE="/";</script>\n')
+body_start = ui.index('<div class="wrap" id="lobby">')
+full = head + ui[:body_start] + '</head>\n<body>\n' + ui[body_start:] + '\n</body>\n</html>\n'
+full = full.replace('src="static/assets/art49/brand.svg"', 'src="/static/assets/art49/brand.svg"')
+open('spinrush_chatgpt.html', 'w', encoding='utf-8').write(full)
+print('spinrush_chatgpt.html', len(full), 'bytes')
 print('index.html', len(ui), 'bytes;', len(games), 'games')

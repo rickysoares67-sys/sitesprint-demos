@@ -155,7 +155,7 @@ button:disabled{opacity:.42;cursor:not-allowed}
 
 <div class="wrap" id="lobby">
   <div class="top">
-    <img class="brand" src="static/assets/art49/brand.svg" alt="SpinRush">
+    <img class="brand" id="brandImg" src="static/assets/art49/brand.svg" alt="SpinRush">
     <div class="bal"><small>Virtual balance · ZAR</small><b class="num" id="lobBal">R 25 000,00</b></div>
   </div>
   <section class="hero" id="hero" aria-label="Featured game">
@@ -499,7 +499,9 @@ button:disabled{opacity:.42;cursor:not-allowed}
 var E = SREngine, D = SITE, WILD = E.WILD, SCAT = E.SCAT, COIN = E.COIN;
 var $ = function (id) { return document.getElementById(id); };
 var LB = [0.05, 0.10, 0.20, 0.50, 1, 2, 5];
-var COMMON = 'static/assets/art52/common.webp', PIR = 'static/assets/art49/pirate-symbols50.png';
+var BASE = window.SPINRUSH_ASSET_BASE || '';   // '' on Claude (files beside the page); '/' on the ChatGPT site (/static/assets)
+function A(p) { return BASE + String(p).replace(/^\//, ''); }
+var COMMON = A('static/assets/art52/common.webp'), PIR = A('static/assets/art49/pirate-symbols50.png');
 var S = { bal: 25000, lbIdx: 1, lines: {}, turbo: false, auto: 0, sound: true, busy: false, gambleAmt: 0, age: false, stopReq: false };
 try { var sv = JSON.parse(localStorage.getItem('spinrush-site-v2') || 'null');
   if (sv && isFinite(sv.bal)) { S.bal = Math.max(0, +sv.bal); S.lbIdx = Math.min(LB.length - 1, Math.max(0, sv.lbIdx | 0)); S.lines = sv.lines || {}; S.turbo = !!sv.turbo; S.sound = sv.sound !== false; S.age = !!sv.age; } } catch (e) {}
@@ -539,8 +541,8 @@ var IMG = {};
 function img(src) { if (!IMG[src]) { var im = new Image(); im.decoding = 'async'; im.src = src; IMG[src] = im; } return IMG[src]; }
 function loaded(srcs) { return Promise.all(srcs.map(function (s) { var im = img(s); return im.complete && im.naturalWidth ? 1 : new Promise(function (r) { im.onload = im.onerror = r; }); })); }
 function tile(x, im, idx, dx, dy, dw, dh) { if (!im.naturalWidth) return; var sw = im.naturalWidth / 4, sh = im.naturalHeight / 4; x.drawImage(im, (idx % 4) * sw, Math.floor(idx / 4) * sh, sw, sh, dx, dy, dw, dh); }
-function worldSvg(id, dim) { var a = D.A51[id]; if (!a) return ''; return '<svg viewBox="' + a.view + '" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><image href="' + a.src.replace(/^\//, '') + '" width="' + a.w + '" height="' + a.h + '"/></svg>'; }
-function sheetFor(id) { var a = D.A52[id]; return a ? a.src.replace(/^\//, '') : PIR; }
+function worldSvg(id, dim) { var a = D.A51[id]; if (!a) return ''; return '<svg viewBox="' + a.view + '" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><image href="' + A(a.src) + '" width="' + a.w + '" height="' + a.h + '"/></svg>'; }
+function sheetFor(id) { var a = D.A52[id]; return a ? A(a.src) : PIR; }
 function rr(x, X, Y, w, h, r) { x.beginPath(); x.moveTo(X + r, Y); x.arcTo(X + w, Y, X + w, Y + h, r); x.arcTo(X + w, Y + h, X, Y + h, r); x.arcTo(X, Y + h, X, Y, r); x.arcTo(X, Y, X + w, Y, r); x.closePath(); }
 
 function drawSymbol(x, code, px, gid, family) {
@@ -549,7 +551,7 @@ function drawSymbol(x, code, px, gid, family) {
   else if (code <= 10) tile(x, pir ? sheet : common, pir ? D.map49['s' + (code < 10 ? '0' : '') + code] : [3, 4, 5][code - 8], o, o, z, z);
   else if (code === WILD) {
     if (pir) { tile(x, sheet, D.map49.s18, o, o, z, z); return; }
-    var w = D.A51[gid], wim = w && img(w.src.replace(/^\//, '')), p = px * .06;
+    var w = D.A51[gid], wim = w && img(A(w.src)), p = px * .06;
     x.save(); rr(x, p, p, px - 2 * p, px - 2 * p, px * .08); x.clip();
     var bg = x.createLinearGradient(0, 0, px, px); bg.addColorStop(0, byId[gid].accent || '#8b40c0'); bg.addColorStop(1, '#180c29'); x.fillStyle = bg; x.fillRect(0, 0, px, px);
     if (wim && wim.naturalWidth) { var v = w.view.split(' ').map(Number), crop = Math.min(v[2], v[3]); x.drawImage(wim, v[0] + (v[2] - crop) / 2, v[1], crop, v[3], p, p, px - 2 * p, px - 2 * p); }
@@ -581,7 +583,7 @@ function renderLobby() {
   var q = $('q').value.trim().toLowerCase();
   var list = GAMES.filter(function (g) { return (filter === 'all' || g.family === filter) && (!q || g.name.toLowerCase().indexOf(q) >= 0); });
   $('grid').innerHTML = list.map(function (g) {
-    return '<button class="card" data-id="' + g.id + '"><img loading="lazy" decoding="async" src="' + g.cover.replace(/^\//, '') + '" alt=""><span class="rt">' + (g.rtp * 100).toFixed(1) + '%</span><span class="meta"><span class="nm">' + g.name + '</span><span class="fm">' + LABEL(g.family) + ' · ' + g.maxLines + ' lines</span></span></button>';
+    return '<button class="card" data-id="' + g.id + '"><img loading="lazy" decoding="async" src="' + A(g.cover) + '" alt=""><span class="rt">' + (g.rtp * 100).toFixed(1) + '%</span><span class="meta"><span class="nm">' + g.name + '</span><span class="fm">' + LABEL(g.family) + ' · ' + g.maxLines + ' lines</span></span></button>';
   }).join('');
   $('empty').hidden = list.length > 0;
   $('collSub').textContent = GAMES.length + ' games · find your next world.';
@@ -623,7 +625,7 @@ function openGame(id) {
   msg(E.FAMILY[entry.family].blurb);
   reels = G.strips.map(function (s) { return { pos: rng(s.length), phase: 'idle', v: 0 }; });
   PX = 0; SPR = {}; SPRB = {};
-  var srcs = [sheetFor(id), COMMON]; if (D.A51[id]) srcs.push(D.A51[id].src.replace(/^\//, ''));
+  var srcs = [sheetFor(id), COMMON]; if (D.A51[id]) srcs.push(A(D.A51[id].src));
   loaded(srcs).then(function () { PX = 0; resize(); });
   resize(); paint();
 }
@@ -977,6 +979,7 @@ $('simBtn').onclick = function () {
 /* ---- age gate & boot ---- */
 $('gateYes').onclick = function () { S.age = true; save(); $('gate').hidden = true; };
 $('gateNo').onclick = function () { $('gateMsg').textContent = 'SpinRush is for adults only. Please come back when you are 18.'; };
+$('brandImg').src = A('static/assets/art49/brand.svg');
 heroShow(0); renderLobby();
 if (!S.age) $('gate').hidden = false;
 route();
