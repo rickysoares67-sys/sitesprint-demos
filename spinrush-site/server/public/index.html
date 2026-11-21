@@ -158,6 +158,33 @@ button:disabled{opacity:.42;cursor:not-allowed}
 .gate .box{max-width:420px;text-align:center;margin-top:12vh}
 @media (min-width:860px){.hero{min-height:380px}.hero .in{padding:28px}}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+/* ---- ChatGPT cabinet & collection styling ---- */
+/* Original illustrated cabinets and collection artwork. */
+.cabinet-brand{width:clamp(108px,30vw,158px);height:42px;object-fit:contain;margin:auto}
+.ghead{border-bottom:1px solid #a87947;background:linear-gradient(#291336,#100c20);padding:6px 9px}
+.game{background:linear-gradient(155deg,#36213e,#130d20 65%);border:1px solid #8b6649;border-radius:16px;overflow:hidden}
+.game .jps{margin:7px}
+.marquee{position:relative;isolation:isolate;aspect-ratio:2.22;background:#160b2a;overflow:hidden}
+#marqueeArt,.marquee-caption{position:absolute;inset:0}
+#marqueeArt svg,.original-cover svg{width:100%;height:100%;display:block}
+.marquee-caption{display:flex;flex-direction:column;justify-content:flex-end;align-items:center;padding:8px;background:linear-gradient(0deg,#160b23ed,transparent 53%);color:#ffe3a0;text-align:center}
+.marquee h1,.card .nm{font:900 clamp(25px,6vw,42px)/1.08 Georgia,serif;text-shadow:0 2px #723321,0 4px 9px #160918;margin:0}
+.marquee small,.card .fm{color:#f2d6a5;font-size:11px;letter-spacing:.06em}
+.game[data-world="pirate_dominion"] .marquee-caption{clip-path:inset(50%)}
+.game[data-world="pirate_dominion"] .deck{background:url('/static/assets/art49/deck.svg') center/cover}
+.stage{margin:0 7px;border:1px solid #ffe4ac;border-radius:10px;padding:5px;box-shadow:0 2px 8px #100819}
+.world{inset:5px}.world,.window{border-radius:5px}
+.deck,.meters,.betline{padding-inline:8px}
+.deck{padding-block:7px}
+.hero::after{background:linear-gradient(90deg,#110a20e8,transparent 78%),linear-gradient(0deg,#100a20cb,transparent 62%)}
+.hero p{max-width:37ch}.hero .in{max-width:64%}
+.card{border-color:#926a43;box-shadow:0 4px 12px #0004}
+.card img,.original-cover{display:block;width:100%;aspect-ratio:4/3;overflow:hidden}
+.card .meta{position:absolute;inset:auto 0 0;padding:28px 8px 9px;background:linear-gradient(transparent,#160d22ed 58%,#100a19)}
+.card .nm{font-size:clamp(17px,3.8vw,22px);color:#ffe4a9}.card .fm{font-size:9px}
+@media(max-width:600px){.hero{display:block;min-height:0}.hero .art{position:relative;aspect-ratio:2/1}.hero::after{display:none}.hero .in{padding:12px;max-width:none;background:linear-gradient(#291631,#150d23)}.hero .in p{max-width:none}.hero h1{font-size:28px}.grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}}
+@media(max-height:480px) and (orientation:landscape){.marquee{aspect-ratio:5}}
+@media(max-width:600px){#hero{display:block}#hero .art{position:relative;inset:auto;width:100%}}
 </style>
 
 </head>
@@ -191,9 +218,10 @@ button:disabled{opacity:.42;cursor:not-allowed}
 <div class="game" id="gameView" hidden>
   <div class="ghead">
     <button class="back" id="back" aria-label="Back to the collection">‹</button>
-    <div class="gt"><b id="gName">Game</b><small id="gFam">family</small></div>
+    <img class="cabinet-brand" src="/static/assets/art49/brand.svg" alt="SpinRush">
     <div class="bal gbal"><small>Balance</small><b class="num" id="gBal">R 0,00</b></div>
   </div>
+  <div class="marquee"><div id="marqueeArt"></div><div class="marquee-caption"><h1 id="gName">Game</h1><small id="gFam"></small></div></div>
   <div class="jps" id="jps" hidden></div>
   <div class="stage">
     <div class="world" id="world"></div>
@@ -583,7 +611,7 @@ function drawSymbol(x, code, px, gid, family) {
 }
 
 /* ================================================================ lobby */
-var FEAT = ['g31', 'g34', 'g35'], feat = 0, filter = 'all';
+var FEAT = ['pirate_dominion', 'temple', 'g31'], feat = 0, filter = 'all';
 var ORDER = ['respin', 'book', 'pearl', 'fruit', 'classic', 'lock', 'sticky'];
 function heroShow(i) {
   feat = i; var g = byId[FEAT[i]];
@@ -598,7 +626,7 @@ function renderLobby() {
   var q = $('q').value.trim().toLowerCase();
   var list = GAMES.filter(function (g) { return (filter === 'all' || g.family === filter) && (!q || g.name.toLowerCase().indexOf(q) >= 0); });
   $('grid').innerHTML = list.map(function (g) {
-    return '<button class="card" data-id="' + g.id + '"><img loading="lazy" decoding="async" src="' + A(g.cover) + '" alt=""><span class="rt">' + (g.rtp * 100).toFixed(1) + '%</span><span class="meta"><span class="nm">' + g.name + '</span><span class="fm">' + LABEL(g.family) + ' · ' + g.maxLines + ' lines</span></span></button>';
+    return '<button class="card" data-id="' + g.id + '">' + (/^g[0-9]+$/.test(g.id) ? '<img loading="lazy" decoding="async" src="' + A(g.cover) + '" alt="">' : '<span class="original-cover">' + worldSvg(g.id) + '</span>') + '<span class="rt">' + (g.rtp * 100).toFixed(1) + '%</span><span class="meta"><span class="nm">' + g.name + '</span><span class="fm">' + LABEL(g.family) + ' · ' + g.maxLines + ' lines</span></span></button>';
   }).join('');
   $('empty').hidden = list.length > 0;
   $('collSub').textContent = GAMES.length + ' games · find your next world.';
@@ -634,6 +662,8 @@ function openGame(id) {
   $('lobby').hidden = true; $('gameView').hidden = false; window.scrollTo(0, 0);
   $('gName').textContent = entry.name; $('gFam').textContent = LABEL(entry.family) + ' · ' + G.maxLines + ' lines';
   $('world').innerHTML = worldSvg(id);
+  $('gameView').dataset.world = id;
+  $('marqueeArt').innerHTML = worldSvg(id);
   $('rtpFoot').textContent = 'Payout rate ' + (entry.rtp * 100).toFixed(1) + '% at ' + G.maxLines + ' lines, checked over 3 million spins.';
   scene = { held: null, sticky: null, expand: null, coins: null, winCells: null, item: null, tease: -1, hw: null, dimAll: false };
   S.gambleAmt = 0; $('winM').querySelector('b').textContent = money(0);
@@ -1006,6 +1036,7 @@ $('simBtn').onclick = function () {
 $('gateYes').onclick = function () { S.age = true; save(); $('gate').hidden = true; };
 $('gateNo').onclick = function () { $('gateMsg').textContent = 'SpinRush is for adults only. Please come back when you are 18.'; };
 $('brandImg').src = A('static/assets/art49/brand.svg');
+document.querySelectorAll('img.cabinet-brand').forEach(function (im) { im.src = A('static/assets/art49/brand.svg'); });
 heroShow(0); renderLobby();
 if (SERVER) api('/api/session').then(function (j) { S.bal = j.balance; renderLobby(); paint(); }).catch(function () { msg('Could not reach the game server.'); });
 if (!S.age) $('gate').hidden = false;

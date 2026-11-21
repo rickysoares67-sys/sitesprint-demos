@@ -30,6 +30,7 @@ head = ('<!doctype html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n'
 body_start = ui.index('<div class="wrap" id="lobby">')
 full = head + ui[:body_start] + '</head>\n<body>\n' + ui[body_start:] + '\n</body>\n</html>\n'
 full = full.replace('src="static/assets/art49/brand.svg"', 'src="/static/assets/art49/brand.svg"')
+full = full.replace("url('static/assets/", "url('/static/assets/")
 open('spinrush_chatgpt.html', 'w', encoding='utf-8').write(full)
 print('spinrush_chatgpt.html', len(full), 'bytes')
 print('index.html', len(ui), 'bytes;', len(games), 'games')

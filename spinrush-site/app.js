@@ -78,7 +78,7 @@ function drawSymbol(x, code, px, gid, family) {
 }
 
 /* ================================================================ lobby */
-var FEAT = ['g31', 'g34', 'g35'], feat = 0, filter = 'all';
+var FEAT = ['pirate_dominion', 'temple', 'g31'], feat = 0, filter = 'all';
 var ORDER = ['respin', 'book', 'pearl', 'fruit', 'classic', 'lock', 'sticky'];
 function heroShow(i) {
   feat = i; var g = byId[FEAT[i]];
@@ -93,7 +93,7 @@ function renderLobby() {
   var q = $('q').value.trim().toLowerCase();
   var list = GAMES.filter(function (g) { return (filter === 'all' || g.family === filter) && (!q || g.name.toLowerCase().indexOf(q) >= 0); });
   $('grid').innerHTML = list.map(function (g) {
-    return '<button class="card" data-id="' + g.id + '"><img loading="lazy" decoding="async" src="' + A(g.cover) + '" alt=""><span class="rt">' + (g.rtp * 100).toFixed(1) + '%</span><span class="meta"><span class="nm">' + g.name + '</span><span class="fm">' + LABEL(g.family) + ' · ' + g.maxLines + ' lines</span></span></button>';
+    return '<button class="card" data-id="' + g.id + '">' + (/^g[0-9]+$/.test(g.id) ? '<img loading="lazy" decoding="async" src="' + A(g.cover) + '" alt="">' : '<span class="original-cover">' + worldSvg(g.id) + '</span>') + '<span class="rt">' + (g.rtp * 100).toFixed(1) + '%</span><span class="meta"><span class="nm">' + g.name + '</span><span class="fm">' + LABEL(g.family) + ' · ' + g.maxLines + ' lines</span></span></button>';
   }).join('');
   $('empty').hidden = list.length > 0;
   $('collSub').textContent = GAMES.length + ' games · find your next world.';
@@ -129,6 +129,8 @@ function openGame(id) {
   $('lobby').hidden = true; $('gameView').hidden = false; window.scrollTo(0, 0);
   $('gName').textContent = entry.name; $('gFam').textContent = LABEL(entry.family) + ' · ' + G.maxLines + ' lines';
   $('world').innerHTML = worldSvg(id);
+  $('gameView').dataset.world = id;
+  $('marqueeArt').innerHTML = worldSvg(id);
   $('rtpFoot').textContent = 'Payout rate ' + (entry.rtp * 100).toFixed(1) + '% at ' + G.maxLines + ' lines, checked over 3 million spins.';
   scene = { held: null, sticky: null, expand: null, coins: null, winCells: null, item: null, tease: -1, hw: null, dimAll: false };
   S.gambleAmt = 0; $('winM').querySelector('b').textContent = money(0);
@@ -501,6 +503,7 @@ $('simBtn').onclick = function () {
 $('gateYes').onclick = function () { S.age = true; save(); $('gate').hidden = true; };
 $('gateNo').onclick = function () { $('gateMsg').textContent = 'SpinRush is for adults only. Please come back when you are 18.'; };
 $('brandImg').src = A('static/assets/art49/brand.svg');
+document.querySelectorAll('img.cabinet-brand').forEach(function (im) { im.src = A('static/assets/art49/brand.svg'); });
 heroShow(0); renderLobby();
 if (SERVER) api('/api/session').then(function (j) { S.bal = j.balance; renderLobby(); paint(); }).catch(function () { msg('Could not reach the game server.'); });
 if (!S.age) $('gate').hidden = false;
