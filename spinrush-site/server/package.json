@@ -1,0 +1,9 @@
+{
+  "name": "spinrush-server",
+  "version": "1.0.0",
+  "private": true,
+  "description": "SpinRush game server: server-side outcomes, balances and audit log. Virtual play-money only.",
+  "main": "server.js",
+  "scripts": { "start": "node server.js" },
+  "engines": { "node": ">=18" }
+}

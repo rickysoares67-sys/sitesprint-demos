@@ -33,3 +33,13 @@ full = full.replace('src="static/assets/art49/brand.svg"', 'src="/static/assets/
 open('spinrush_chatgpt.html', 'w', encoding='utf-8').write(full)
 print('spinrush_chatgpt.html', len(full), 'bytes')
 print('index.html', len(ui), 'bytes;', len(games), 'games')
+
+# Server build: the page runs in server mode; the server holds its own copy of the engine and the tuned game data.
+import os, shutil
+os.makedirs('server/public', exist_ok=True)
+srv_head = head.replace('<script>window.SPINRUSH_ASSET_BASE="/";</script>', '<script>window.SPINRUSH_ASSET_BASE="/";window.SPINRUSH_SERVER=true;</script>')
+open('server/public/index.html', 'w', encoding='utf-8').write(full.replace(head, srv_head))
+json.dump([{'id': g['id'], 'family': g['family'], 'volatility': g['volatility'], 'name': g['name'], 'k': g['k']} for g in games],
+          open('server/games_data.json', 'w'), separators=(',', ':'))
+shutil.copyfile('engine.js', 'server/engine.js')
+print('server build written (server/public/index.html, server/games_data.json, server/engine.js)')

@@ -504,13 +504,19 @@ function A(p) { return BASE + String(p).replace(/^\//, ''); }
 var COMMON = A('static/assets/art52/common.webp'), PIR = A('static/assets/art49/pirate-symbols50.png');
 var S = { bal: 25000, lbIdx: 1, lines: {}, turbo: false, auto: 0, sound: true, busy: false, gambleAmt: 0, age: false, stopReq: false };
 try { var sv = JSON.parse(localStorage.getItem('spinrush-site-v2') || 'null');
-  if (sv && isFinite(sv.bal)) { S.bal = Math.max(0, +sv.bal); S.lbIdx = Math.min(LB.length - 1, Math.max(0, sv.lbIdx | 0)); S.lines = sv.lines || {}; S.turbo = !!sv.turbo; S.sound = sv.sound !== false; S.age = !!sv.age; } } catch (e) {}
+  if (sv) { if (isFinite(sv.bal)) S.bal = Math.max(0, +sv.bal); S.lbIdx = Math.min(LB.length - 1, Math.max(0, sv.lbIdx | 0)); S.lines = sv.lines || {}; S.turbo = !!sv.turbo; S.sound = sv.sound !== false; S.age = !!sv.age; } } catch (e) {}
 function save() { try { localStorage.setItem('spinrush-site-v2', JSON.stringify({ bal: S.bal, lbIdx: S.lbIdx, lines: S.lines, turbo: S.turbo, sound: S.sound, age: S.age })); } catch (e) {} }
 function r2(v) { return Math.round(v * 100) / 100; }
 function money(v) { var neg = v < 0; v = Math.round(Math.abs(v) * 100); var c = v % 100, w = String(Math.floor(v / 100)).replace(/\B(?=(\d{3})+(?!\d))/g, ' '); return (neg ? '−' : '') + 'R ' + w + ',' + (c < 10 ? '0' : '') + c; }
 function short(v) { return v >= 1000 ? 'R' + (v / 1000).toFixed(v >= 10000 ? 0 : 1) + 'k' : v >= 100 ? 'R' + Math.round(v) : 'R' + (Math.round(v * 100) / 100).toString().replace('.', ','); }
 function rng(n) { var a = new Uint32Array(1), lim = Math.floor(4294967296 / n) * n; do { crypto.getRandomValues(a); } while (a[0] >= lim); return a[0] % n; }
 var sleep = function (ms) { return new Promise(function (r) { setTimeout(r, ms); }); };
+/* Server mode: the game server decides every outcome and holds the balance; this page only animates. */
+var SERVER = !!window.SPINRUSH_SERVER;
+function api(path, body) {
+  return fetch(path, { method: body === undefined ? 'GET' : 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'same-origin', body: body === undefined ? undefined : JSON.stringify(body) })
+    .then(function (r) { return r.json().catch(function () { return {}; }).then(function (j) { if (!r.ok || j.error) throw new Error(j.error || ('HTTP ' + r.status)); return j; }); });
+}
 var RM = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
 var GAMES = D.games, byId = {}; GAMES.forEach(function (g) { byId[g.id] = g; });
 var LABEL = function (f) { return E.FAMILY[f].label; };
@@ -763,7 +769,7 @@ function band(t, cls) { var b = $('band'); if (!t) { b.hidden = true; return; } 
 
 var cycling = 0;
 async function showWins(wins, mult, credit) {
-  var k = G.k, items = [], amt = 0;
+  var k = SERVER ? 1 : G.k, items = [], amt = 0;
   (wins || []).forEach(function (w) {
     var a = r2(w.amt * k); amt += a;
     var text = w.scatter ? w.n + ' × ' + nameOf(SCAT) : w.expand ? 'Expanding ' + nameOf(w.sym) + ' on ' + w.n + ' reels' : 'Line ' + (w.line + 1) + ': ' + w.n + ' × ' + nameOf(w.sym) + (w.wild && G.fam.wildDouble ? ' (wild ×2)' : '');
@@ -837,7 +843,12 @@ async function play() {
   S.busy = true; S.stopReq = false; S.gambleAmt = 0; audio(); SND.coin(); stopCycle();
   scene.held = null; scene.sticky = null; scene.expand = null; scene.coins = null; scene.dimAll = false; band('');
   S.bal = r2(S.bal - TB); $('winM').querySelector('b').textContent = money(0); paint(); save();
-  var R = E.round(G, L, lb, rng, true), total = 0, fsMult = 1, fsTotal = 0, fsPlayed = 0, special = -1, k = G.k;
+  var R, srvBal = null, srvGamble = 0;
+  if (SERVER) {
+    try { var sr = await api('/api/spin', { game: G.id, lines: L, lineBet: lb }); R = sr.round; srvBal = sr.balance; srvGamble = sr.gamble; }
+    catch (err) { try { S.bal = (await api('/api/session')).balance; } catch (e2) {} S.busy = false; S.auto = 0; msg('The spin could not be completed: ' + err.message + '. Your balance is shown as the server holds it.'); paint(); return; }
+  } else R = E.round(G, L, lb, rng, true);
+  var total = 0, fsMult = 1, fsTotal = 0, fsPlayed = 0, special = -1, k = SERVER ? 1 : G.k;
   msg('Good luck!');
   for (var i = 0; i < R.steps.length; i++) {
     var st = R.steps[i];
@@ -883,7 +894,8 @@ async function play() {
   band('');
   await bigBanner(total);
   if (total > 0) msg('You won ' + money(total) + (S.auto === 0 && total <= 2500 ? '. Press GAMBLE to risk it, or SPIN to keep it.' : '.'));
-  if (total > 0 && S.auto === 0 && total <= 2500) S.gambleAmt = total;
+  if (SERVER) S.bal = srvBal;                       // the server's balance is the only true one
+  if (S.auto === 0 && (SERVER ? srvGamble > 0 : (total > 0 && total <= 2500))) S.gambleAmt = SERVER ? srvGamble : total;
   S.busy = false; paint(); save();
   if (S.auto !== 0) { if (S.auto > 0) S.auto--; paint(); if (S.auto !== 0) { await sleep(S.turbo ? 250 : 600); if (S.auto !== 0 && !$('gameView').hidden) return play(); } }
 }
@@ -898,11 +910,14 @@ async function gamble() {
         '<div class="row"><button class="go red" id="gR">RED</button><button class="go black" id="gB">BLACK</button></div><button class="go" id="gC">COLLECT ' + money(amt) + '</button>';
       o.hidden = false; $('gC').focus(); $('gR').onclick = function () { res('r'); }; $('gB').onclick = function () { res('b'); }; $('gC').onclick = function () { res('c'); };
     });
-    if (pick === 'c') break;
+    if (pick === 'c') { if (SERVER) { try { S.bal = (await api('/api/gamble', { pick: 'collect' })).balance; } catch (e) {} } break; }
     ['gR', 'gB', 'gC'].forEach(function (id) { $(id).disabled = true; });
-    var res = rng(2) ? 'r' : 'b', card = $('gCard'); card.textContent = res === 'r' ? '♦' : '♣'; card.className = 'card2 ' + res; SND.roll(); await sleep(RM ? 300 : 750);
-    if (pick === res) { S.bal = r2(S.bal + amt); amt = r2(amt * 2); $('gAmt').textContent = money(amt); SND.win(); burst(20, .9); paint(); await sleep(RM ? 250 : 650); }
-    else { S.bal = r2(S.bal - amt); amt = 0; SND.heart(); paint(); o.innerHTML = '<h2>GAMBLE LOST</h2><p>That win is gone. Spin again!</p><button class="go" id="gOk">OK</button>'; await new Promise(function (r) { $('gOk').onclick = r; $('gOk').focus(); setTimeout(r, 1600); }); }
+    var res, srv = null;
+    if (SERVER) { try { srv = await api('/api/gamble', { pick: pick === 'r' ? 'red' : 'black' }); res = srv.result === 'red' ? 'r' : 'b'; } catch (e) { msg('Gamble failed: ' + e.message); amt = 0; break; } }
+    else res = rng(2) ? 'r' : 'b';
+    var card = $('gCard'); card.textContent = res === 'r' ? '♦' : '♣'; card.className = 'card2 ' + res; SND.roll(); await sleep(RM ? 300 : 750);
+    if (pick === res) { S.bal = srv ? srv.balance : r2(S.bal + amt); amt = r2(amt * 2); $('gAmt').textContent = money(amt); SND.win(); burst(20, .9); paint(); await sleep(RM ? 250 : 650); }
+    else { S.bal = srv ? srv.balance : r2(S.bal - amt); amt = 0; SND.heart(); paint(); o.innerHTML = '<h2>GAMBLE LOST</h2><p>That win is gone. Spin again!</p><button class="go" id="gOk">OK</button>'; await new Promise(function (r) { $('gOk').onclick = r; $('gOk').focus(); setTimeout(r, 1600); }); }
     save();
   }
   o.hidden = true; o.innerHTML = ''; if (amt > 0) msg('Collected ' + money(amt) + '.');
@@ -935,7 +950,9 @@ $('autoBtn').onclick = function () { SND.click(); var i = AUTOS.indexOf(S.auto);
 $('turboBtn').onclick = function () { SND.click(); S.turbo = !S.turbo; paint(); save(); };
 $('sndBtn').onclick = function () { S.sound = !S.sound; if (S.sound) SND.click(); paint(); save(); };
 $('gambleBtn').onclick = function () { SND.click(); gamble(); };
-$('topBtn').onclick = function () { SND.click(); if (S.busy) return; if (S.bal >= 25000) { msg('Top-up is available when your balance is below R 25 000,00.'); return; } S.bal = 25000; paint(); save(); msg('Balance topped up to ' + money(25000) + '.'); };
+$('topBtn').onclick = function () { SND.click(); if (S.busy) return;
+  if (SERVER) { api('/api/topup', {}).then(function (j) { S.bal = j.balance; paint(); msg('Balance topped up to ' + money(j.balance) + '.'); }).catch(function (e) { msg(e.message + '.'); }); return; }
+  if (S.bal >= 25000) { msg('Top-up is available when your balance is below R 25 000,00.'); return; } S.bal = 25000; paint(); save(); msg('Balance topped up to ' + money(25000) + '.'); };
 $('back').onclick = function () { SND.click(); if (S.busy) return; S.auto = 0; location.hash = ''; };
 document.addEventListener('keydown', function (e) { if (e.code === 'Space' && !$('gameView').hidden && $('rules').hidden && $('ov').hidden && $('gate').hidden && document.activeElement.tagName !== 'INPUT') { e.preventDefault(); $('spinBtn').click(); } });
 
@@ -981,6 +998,7 @@ $('gateYes').onclick = function () { S.age = true; save(); $('gate').hidden = tr
 $('gateNo').onclick = function () { $('gateMsg').textContent = 'SpinRush is for adults only. Please come back when you are 18.'; };
 $('brandImg').src = A('static/assets/art49/brand.svg');
 heroShow(0); renderLobby();
+if (SERVER) api('/api/session').then(function (j) { S.bal = j.balance; renderLobby(); paint(); }).catch(function () { msg('Could not reach the game server.'); });
 if (!S.age) $('gate').hidden = false;
 route();
 if (location.hash === '#selftest') window.__sr = { S: S, open: openGame, play: play, gamble: gamble, G: function () { return G; } };
